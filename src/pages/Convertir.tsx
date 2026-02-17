@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { FileOutput, Upload, FileSpreadsheet, Image, CheckCircle2, AlertTriangle, XCircle, Download, ClipboardCheck, PenLine, Eraser } from "lucide-react";
+import { FileOutput, Upload, FileSpreadsheet, Image, CheckCircle2, AlertTriangle, XCircle, Download, ClipboardCheck, PenLine, Eraser, Loader2, Sparkles, Eye } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult, type DetectedLine } from "@/lib/excel-pyl";
 import { downloadPYL, PYL_LINE_MAP } from "@/lib/pyl";
+import { supabase } from "@/integrations/supabase/client";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
@@ -59,6 +60,17 @@ function computeTotals(v: number[]): number[] {
   return r;
 }
 
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 const Convertir = () => {
   // --- Excel tab state ---
   const [result, setResult] = useState<ExcelParseResult | null>(null);
@@ -77,6 +89,16 @@ const Convertir = () => {
 
   const computedManual = useMemo(() => computeTotals(manualValues), [manualValues]);
 
+  // --- PDF/Image tab state ---
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
+  const [pdfExtracting, setPdfExtracting] = useState(false);
+  const [pdfDragOver, setPdfDragOver] = useState(false);
+  const [pdfYear, setPdfYear] = useState("");
+  const [pdfMonth, setPdfMonth] = useState("");
+  const [pdfLocalCode, setPdfLocalCode] = useState("");
+  const [pdfLines, setPdfLines] = useState<DetectedLine[]>([]);
+
   const handleManualChange = (index: number, raw: string) => {
     const num = raw === "" || raw === "-" ? 0 : parseFloat(raw);
     if (isNaN(num)) return;
@@ -85,6 +107,74 @@ const Convertir = () => {
       next[index] = num;
       return next;
     });
+  };
+
+  // --- PDF/Image handlers ---
+  const handlePdfFile = useCallback((file: File) => {
+    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Solo se aceptan archivos PDF, PNG o JPG");
+      return;
+    }
+    setPdfFile(file);
+    setPdfLines([]);
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPdfPreview(url);
+    } else {
+      setPdfPreview(null);
+    }
+  }, []);
+
+  const handlePdfExtract = useCallback(async () => {
+    if (!pdfFile) return;
+    setPdfExtracting(true);
+    try {
+      const base64 = await fileToBase64(pdfFile);
+      const { data, error } = await supabase.functions.invoke("extract-pyl", {
+        body: { fileBase64: base64, mimeType: pdfFile.type },
+      });
+      if (error) throw new Error(error.message || "Error al llamar a la IA");
+      if (data?.error) throw new Error(data.error);
+
+      const extracted = data;
+      if (extracted.year) setPdfYear(extracted.year);
+      if (extracted.month) setPdfMonth(extracted.month);
+      if (extracted.localCode) setPdfLocalCode(extracted.localCode);
+
+      const detectedLines: DetectedLine[] = PYL_LINE_MAP.map((info, i) => ({
+        lineNumber: info.lineNumber,
+        label: info.label,
+        type: info.type,
+        value: extracted.lines[i] ?? 0,
+        status: (extracted.lines[i] !== 0 ? "detected" : "missing") as DetectedLine["status"],
+      }));
+      setPdfLines(detectedLines);
+      const count = detectedLines.filter((l) => l.status === "detected").length;
+      toast.success(`Extracción completada: ${count}/43 líneas detectadas`);
+    } catch (e: any) {
+      console.error("Extract error:", e);
+      toast.error(`Error de extracción: ${e.message}. Prueba la pestaña Excel o Manual.`);
+    } finally {
+      setPdfExtracting(false);
+    }
+  }, [pdfFile]);
+
+  const updatePdfLineValue = (index: number, value: string) => {
+    const num = value === "" ? 0 : parseFloat(value);
+    if (isNaN(num)) return;
+    setPdfLines((prev) => prev.map((l, i) => i === index ? { ...l, value: num, status: l.status === "missing" && num !== 0 ? "review" : l.status } : l));
+  };
+
+  const handlePdfGenerate = () => {
+    if (!pdfYear || !pdfMonth || !pdfLocalCode) {
+      toast.error("Completa Año, Mes y Código Local antes de generar");
+      return;
+    }
+    if (!/^\d{4}$/.test(pdfYear)) { toast.error("El año debe tener 4 dígitos"); return; }
+    const data = resultToPYLData({ year: pdfYear, month: pdfMonth, localCode: pdfLocalCode, lines: pdfLines });
+    downloadPYL(data);
+    toast.success(`Archivo ${pdfYear.slice(-2)}${pdfMonth}${pdfLocalCode}.pyl descargado`);
   };
 
   const handleManualGenerate = () => {
@@ -289,19 +379,139 @@ const Convertir = () => {
         </TabsContent>
 
         {/* ====== PDF TAB ====== */}
-        <TabsContent value="pdf" className="mt-6">
-          <Card className="w-full max-w-md mx-auto text-center">
-            <CardHeader>
-              <div className="mx-auto mb-2 rounded-full bg-secondary/10 p-3 w-fit">
-                <Image className="text-secondary" size={28} />
-              </div>
-              <CardTitle>Desde PDF/Imagen</CardTitle>
-              <CardDescription>Conversión desde PDF o imagen escaneada</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Funcionalidad próximamente disponible.</p>
+        <TabsContent value="pdf" className="mt-6 space-y-6">
+          {/* Drop zone */}
+          <Card
+            className={`border-2 border-dashed transition-colors cursor-pointer ${
+              pdfDragOver ? "border-secondary bg-secondary/5" : "border-border hover:border-secondary/50"
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setPdfDragOver(true); }}
+            onDragLeave={() => setPdfDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setPdfDragOver(false); const f = e.dataTransfer.files[0]; if (f) handlePdfFile(f); }}
+            onClick={() => document.getElementById("pdf-input")?.click()}
+          >
+            <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
+              <Upload className="text-muted-foreground" size={40} />
+              <p className="text-sm font-medium text-foreground">Arrastra tu PDF o imagen aquí</p>
+              <p className="text-xs text-muted-foreground">o haz clic para seleccionar (.pdf, .png, .jpg)</p>
+              <input
+                id="pdf-input"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfFile(f); }}
+              />
             </CardContent>
           </Card>
+
+          {pdfFile && (
+            <>
+              {/* Preview */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2"><Eye size={18} /> Vista previa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pdfPreview ? (
+                    <img src={pdfPreview} alt="Preview" className="max-h-64 mx-auto rounded-md border" />
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileOutput size={16} />
+                      <span>{pdfFile.name} ({(pdfFile.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Metadata */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Datos del P&L</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Año</Label>
+                      <Input value={pdfYear} onChange={(e) => setPdfYear(e.target.value)} placeholder="2025" maxLength={4} className={!pdfYear ? "border-destructive" : ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mes</Label>
+                      <Select value={pdfMonth} onValueChange={setPdfMonth}>
+                        <SelectTrigger className={!pdfMonth ? "border-destructive" : ""}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>{MONTHS.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Código Local</Label>
+                      <Input value={pdfLocalCode} onChange={(e) => setPdfLocalCode(e.target.value)} placeholder="289" className={!pdfLocalCode ? "border-destructive" : ""} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Extract button */}
+              {pdfLines.length === 0 && (
+                <Button onClick={handlePdfExtract} disabled={pdfExtracting} className="gap-2">
+                  {pdfExtracting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {pdfExtracting ? "Extrayendo datos..." : "Extraer datos con IA"}
+                </Button>
+              )}
+
+              {/* Results */}
+              {pdfLines.length > 0 && (
+                <>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={handlePdfGenerate} className="gap-2"><Download size={16} /> Generar .pyl</Button>
+                    <Button variant="outline" onClick={handlePdfExtract} disabled={pdfExtracting} className="gap-2">
+                      {pdfExtracting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                      Re-extraer
+                    </Button>
+                  </div>
+
+                  <Card>
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-lg">Previsualización</CardTitle>
+                      <CardDescription>
+                        {pdfLines.filter((l) => l.status === "detected").length} detectadas ·{" "}
+                        {pdfLines.filter((l) => l.status === "missing").length} vacías — Puedes editar cualquier valor
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="overflow-auto max-h-[60vh]">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-16">Línea</TableHead>
+                              <TableHead>Concepto</TableHead>
+                              <TableHead className="w-40 text-right">Valor</TableHead>
+                              <TableHead className="w-20 text-center">Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pdfLines.map((line, i) => (
+                              <TableRow key={line.lineNumber} className={line.type === "total" ? "bg-muted/50 font-semibold" : ""}>
+                                <TableCell className="font-mono text-muted-foreground">{String(line.lineNumber).padStart(2, "0")}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <StatusIcon status={line.status} />
+                                    <span className="text-sm">{line.label}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Input type="number" step="any" value={line.value || ""} onChange={(e) => updatePdfLineValue(i, e.target.value)} className="h-8 text-right text-sm w-full" />
+                                </TableCell>
+                                <TableCell className="text-center"><StatusBadge status={line.status} /></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </>
+          )}
         </TabsContent>
 
         {/* ====== MANUAL TAB ====== */}
