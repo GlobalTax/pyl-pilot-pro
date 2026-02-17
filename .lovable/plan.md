@@ -1,63 +1,62 @@
 
 
-# Modelo de datos PYL — Plan de implementaci贸n
+# Pestaña "Manual" en Convertir a PYL
 
 ## Resumen
-Crear el archivo `src/lib/pyl.ts` con el modelo de datos completo del formato `.pyl`, incluyendo interfaces, constantes de mapeo y funciones de generaci贸n/parseo/descarga.
+Agregar una tercera pestaña "Manual" en la pagina de conversion que permite introducir los 43 valores del P&L a mano, con calculo automatico de totales y organizacion visual por secciones.
 
 ---
 
-## Archivo a crear
+## Cambios en archivos
 
-**`src/lib/pyl.ts`** -- un 煤nico archivo con todo el modelo de datos y utilidades.
+### 1. `src/pages/Convertir.tsx`
 
-### Contenido detallado
+**Modificaciones:**
+- Cambiar el `TabsList` de 2 columnas a 3 (`grid-cols-3`) y agregar la pestaña "Manual" con icono `PenLine` de Lucide.
+- Agregar un nuevo `TabsContent value="manual"` con el formulario completo.
 
-#### 1. Interface `PYLData`
-```ts
-interface PYLData {
-  year: string;    // "2025"
-  month: string;   // "01"-"12"
-  localCode: string; // "289"
-  lines: number[]; // exactamente 43 elementos
-}
-```
+**Estructura del formulario manual:**
 
-#### 2. Constante `PYL_LINE_MAP`
-Array de 43 objetos `{ lineNumber, label, type }` con el mapeo exacto proporcionado (01-43). El campo `type` sera `"data"` o `"total"` seg煤n lo especificado.
+- **Cabecera:** Campos de Ano, Mes (dropdown 01-12), Codigo Local -- reutilizando el mismo patron visual de la pestana Excel.
+- **Secciones visuales** con las 43 lineas agrupadas:
 
-#### 3. Funci贸n `generatePYL(data: PYLData): string`
-- Itera sobre las 43 l铆neas generando el formato: `A帽o;Mes;C贸digoLocal;N煤meroL铆nea;Importe`
-- N煤mero de l铆nea formateado con zero-padding a 2 d铆gitos ("01", "02", ..., "43")
-- Formato de importes: usa `parseFloat(num.toString())` para eliminar trailing zeros innecesarios (316901.30 se convierte en 316901.3, 80.00 en 80)
-- Line endings CRLF (`\r\n`)
-- Sin salto de l铆nea final extra
+| Seccion | Lineas | Fondo |
+|---------|--------|-------|
+| Ventas y Costes | 01-07 | Blanco |
+| Gastos Controlables | 08-23 | Gris claro (`bg-muted/30`) |
+| Gastos No Controlables | 24-33 | Blanco |
+| No Producto | 34-37 | Gris claro |
+| Resultado | 38-43 | Azul claro (`bg-primary/5`) |
 
-#### 4. Funci贸n `parsePYL(content: string): PYLData`
-- Normaliza line endings (soporta CRLF y LF)
-- Divide en l铆neas, filtra vac铆as
-- Valida que haya exactamente 43 l铆neas
-- Extrae `year`, `month`, `localCode` de la primera l铆nea
-- Parsea el importe de cada l铆nea a `number`
-- Lanza error si el formato es inv谩lido
+- Las lineas tipo `data` muestran un input numerico editable.
+- Las lineas tipo `total` se muestran en negrita con fondo azul oscuro (`bg-primary`) y texto blanco, sin input (valor calculado automaticamente).
 
-#### 5. Funci贸n `generateFilename(data: PYLData): string`
-- Formato: `AAMM + Local + .pyl`
-- Ejemplo: year="2025", month="01", localCode="289" genera `2501289.pyl`
-- Usa los 煤ltimos 2 d铆gitos del a帽o
+**Calculos automaticos (via `useMemo` o recalculo en `onChange`):**
+- L06 = L02 + L03 + L04 + L05
+- L07 = L01 - L06
+- L22 = sum(L08..L21)
+- L23 = L07 - L22
+- L33 = sum(L24..L32)
+- L36 = L34 - L35
+- L37 = L23 - L33 + L36
+- L40 = L37 - L38 - L39
+- L42 = L40 + L30 + L41
 
-#### 6. Funci贸n `downloadPYL(data: PYLData): void`
-- Llama a `generatePYL` para obtener el contenido
-- Llama a `generateFilename` para el nombre
-- Crea un `Blob` con tipo `text/plain`
-- Usa un enlace `<a>` temporal con `URL.createObjectURL` para disparar la descarga
-- Limpia el objeto URL tras la descarga
+Los valores calculados se aplican al array de 43 numeros tras cada cambio de cualquier input.
+
+**Botones:**
+- "Generar .pyl": misma logica que la pestana Excel (valida metadata, llama a `downloadPYL`).
+- "Limpiar formulario": resetea todos los inputs a 0 y los campos de cabecera a vacio.
+
+**Estado:** Nuevas variables de estado `manualYear`, `manualMonth`, `manualLocalCode`, `manualValues` (array de 43 numeros inicializados a 0), independientes de la pestana Excel.
 
 ---
 
-## Detalles t茅cnicos
+## Detalles tecnicos
 
-- No se necesitan dependencias adicionales
-- No se modifican otros archivos en este paso (el archivo se consumir谩 desde las p谩ginas en prompts futuros)
-- Todas las funciones se exportan con `export` para uso posterior
+- Se importa `PYL_LINE_MAP` de `src/lib/pyl.ts` para obtener labels y tipos.
+- Se define una constante con los rangos de seccion para iterar y agrupar las lineas.
+- Los totales se recalculan con una funcion `computeTotals(values: number[]): number[]` que retorna el array completo con los totales actualizados -- se invoca en cada cambio de input.
+- No se crean archivos nuevos; toda la logica queda dentro de `Convertir.tsx`.
+- Formato numerico en los inputs: `type="number"` con `step="any"` para permitir decimales.
 
