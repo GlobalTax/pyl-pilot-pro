@@ -1,62 +1,49 @@
 
 
-# Pestaña "Manual" en Convertir a PYL
+# Dashboard - Landing Page
 
 ## Resumen
-Agregar una tercera pestaña "Manual" en la pagina de conversion que permite introducir los 43 valores del P&L a mano, con calculo automatico de totales y organizacion visual por secciones.
+Reemplazar el placeholder actual de `src/pages/Index.tsx` con un dashboard completo que sirva como landing de la app, incluyendo tarjetas de acceso rapido, actividad reciente en sesion, y seccion informativa sobre archivos .pyl.
 
 ---
 
 ## Cambios en archivos
 
-### 1. `src/pages/Convertir.tsx`
+### 1. `src/pages/Index.tsx` - Reescritura completa
 
-**Modificaciones:**
-- Cambiar el `TabsList` de 2 columnas a 3 (`grid-cols-3`) y agregar la pestaña "Manual" con icono `PenLine` de Lucide.
-- Agregar un nuevo `TabsContent value="manual"` con el formulario completo.
+**Estructura:**
 
-**Estructura del formulario manual:**
+1. **Cabecera** con saludo "Bienvenido a PYL Manager" y subtitulo "Herramienta de gestion de P&L para franquicias".
 
-- **Cabecera:** Campos de Ano, Mes (dropdown 01-12), Codigo Local -- reutilizando el mismo patron visual de la pestana Excel.
-- **Secciones visuales** con las 43 lineas agrupadas:
+2. **Grid 2x2 de tarjetas** de acceso rapido usando `Card` + `Link` de react-router-dom:
+   - "Convertir a PYL" con icono `FileUp`, enlace a `/convertir`
+   - "Visor P&L" con icono `Eye`, enlace a `/visor`
+   - "Descargar Plantilla" con icono `Download`, enlace a `/plantilla`
+   - "Ayuda" con icono `HelpCircle`, enlace a `/ayuda` (ruta placeholder)
+   - Cada tarjeta con efecto hover sutil (`hover:shadow-md hover:-translate-y-0.5 transition-all`)
 
-| Seccion | Lineas | Fondo |
-|---------|--------|-------|
-| Ventas y Costes | 01-07 | Blanco |
-| Gastos Controlables | 08-23 | Gris claro (`bg-muted/30`) |
-| Gastos No Controlables | 24-33 | Blanco |
-| No Producto | 34-37 | Gris claro |
-| Resultado | 38-43 | Azul claro (`bg-primary/5`) |
+3. **Seccion "Actividad reciente":**
+   - Estado React en memoria (`useState<ActivityItem[]>([])`) -- no localStorage.
+   - Muestra los ultimos archivos .pyl generados en la sesion (nombre, fecha, local).
+   - Si no hay actividad: mensaje "No hay actividad reciente en esta sesion".
+   - Nota: como el estado es local al componente y no hay un contexto global de actividad implementado, esta seccion mostrara siempre el mensaje vacio. Se prepara la estructura para integracion futura con un contexto o store.
 
-- Las lineas tipo `data` muestran un input numerico editable.
-- Las lineas tipo `total` se muestran en negrita con fondo azul oscuro (`bg-primary`) y texto blanco, sin input (valor calculado automaticamente).
+4. **Seccion informativa "Que es un archivo .pyl?":**
+   - Explicacion breve en 2 lineas.
+   - Boton/link "Ver mapeo completo" que abre un `Dialog` con una tabla de las 43 lineas PYL (importando `PYL_LINE_MAP` de `src/lib/pyl.ts`).
 
-**Calculos automaticos (via `useMemo` o recalculo en `onChange`):**
-- L06 = L02 + L03 + L04 + L05
-- L07 = L01 - L06
-- L22 = sum(L08..L21)
-- L23 = L07 - L22
-- L33 = sum(L24..L32)
-- L36 = L34 - L35
-- L37 = L23 - L33 + L36
-- L40 = L37 - L38 - L39
-- L42 = L40 + L30 + L41
+### 2. `src/App.tsx` - Agregar ruta placeholder `/ayuda`
 
-Los valores calculados se aplican al array de 43 numeros tras cada cambio de cualquier input.
-
-**Botones:**
-- "Generar .pyl": misma logica que la pestana Excel (valida metadata, llama a `downloadPYL`).
-- "Limpiar formulario": resetea todos los inputs a 0 y los campos de cabecera a vacio.
-
-**Estado:** Nuevas variables de estado `manualYear`, `manualMonth`, `manualLocalCode`, `manualValues` (array de 43 numeros inicializados a 0), independientes de la pestana Excel.
+- Agregar ruta `/ayuda` con un componente placeholder inline similar al Index original (tarjeta con mensaje "Proximamente").
 
 ---
 
 ## Detalles tecnicos
 
-- Se importa `PYL_LINE_MAP` de `src/lib/pyl.ts` para obtener labels y tipos.
-- Se define una constante con los rangos de seccion para iterar y agrupar las lineas.
-- Los totales se recalculan con una funcion `computeTotals(values: number[]): number[]` que retorna el array completo con los totales actualizados -- se invoca en cada cambio de input.
-- No se crean archivos nuevos; toda la logica queda dentro de `Convertir.tsx`.
-- Formato numerico en los inputs: `type="number"` con `step="any"` para permitir decimales.
+- Iconos de Lucide: `FileUp`, `Eye`, `Download`, `HelpCircle`, `Clock`, `Info`.
+- Componentes UI reutilizados: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`.
+- `PYL_LINE_MAP` se importa para popular la tabla del modal.
+- Las tarjetas de navegacion usan `Link` de react-router-dom envuelto en `Card`.
+- Interfaz `ActivityItem`: `{ name: string; date: string; localCode: string }`.
+- No se crean archivos nuevos aparte de la modificacion de los dos existentes.
 
