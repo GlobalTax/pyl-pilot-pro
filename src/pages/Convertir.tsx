@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult, type DetectedLine } from "@/lib/excel-pyl";
 import { downloadPYL, PYL_LINE_MAP } from "@/lib/pyl";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivity } from "@/contexts/ActivityContext";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
@@ -72,6 +73,7 @@ const fileToBase64 = (file: File): Promise<string> =>
   });
 
 const Convertir = () => {
+  const { addActivity } = useActivity();
   // --- Excel tab state ---
   const [result, setResult] = useState<ExcelParseResult | null>(null);
   const [year, setYear] = useState("");
@@ -174,6 +176,7 @@ const Convertir = () => {
     if (!/^\d{4}$/.test(pdfYear)) { toast.error("El año debe tener 4 dígitos"); return; }
     const data = resultToPYLData({ year: pdfYear, month: pdfMonth, localCode: pdfLocalCode, lines: pdfLines });
     downloadPYL(data);
+    addActivity({ name: `${pdfYear.slice(-2)}${pdfMonth}${pdfLocalCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode: pdfLocalCode });
     toast.success(`Archivo ${pdfYear.slice(-2)}${pdfMonth}${pdfLocalCode}.pyl descargado`);
   };
 
@@ -184,6 +187,7 @@ const Convertir = () => {
     }
     if (!/^\d{4}$/.test(manualYear)) { toast.error("El año debe tener 4 dígitos"); return; }
     downloadPYL({ year: manualYear, month: manualMonth, localCode: manualLocalCode, lines: computedManual });
+    addActivity({ name: `${manualYear.slice(-2)}${manualMonth}${manualLocalCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode: manualLocalCode });
     toast.success(`Archivo ${manualYear.slice(-2)}${manualMonth}${manualLocalCode}.pyl descargado`);
   };
 
@@ -242,6 +246,7 @@ const Convertir = () => {
     if (!/^\d{4}$/.test(year)) { toast.error("El año debe tener 4 dígitos"); return; }
     const data = resultToPYLData({ year, month, localCode, lines });
     downloadPYL(data);
+    addActivity({ name: `${year.slice(-2)}${month}${localCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode });
     toast.success(`Archivo ${year.slice(-2)}${month}${localCode}.pyl descargado`);
   };
 

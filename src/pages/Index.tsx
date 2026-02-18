@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { FileUp, Eye, Download, HelpCircle, Clock, Info } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -6,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { PYL_LINE_MAP } from "@/lib/pyl";
-
-interface ActivityItem {
-  name: string;
-  date: string;
-  localCode: string;
-}
+import { useActivity } from "@/contexts/ActivityContext";
 
 const quickLinks = [
   { to: "/convertir", icon: FileUp, title: "Convertir a PYL", desc: "Excel/PDF → .pyl" },
@@ -21,7 +15,7 @@ const quickLinks = [
 ];
 
 const Index = () => {
-  const [activity] = useState<ActivityItem[]>([]);
+  const { activity } = useActivity();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
