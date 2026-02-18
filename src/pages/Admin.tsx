@@ -57,6 +57,14 @@ const Admin = () => {
   const [newCity, setNewCity] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
 
+  // --- Create user state ---
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserCompany, setNewUserCompany] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+
   const fetchProfiles = async () => {
     setLoading(true);
     const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -188,6 +196,35 @@ const Admin = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail.trim() || !newUserPassword.trim()) {
+      toast.error("Email y contraseña son obligatorios");
+      return;
+    }
+    setCreatingUser(true);
+    const { data, error } = await supabase.functions.invoke("create-user", {
+      body: {
+        email: newUserEmail.trim(),
+        password: newUserPassword,
+        full_name: newUserName.trim(),
+        company: newUserCompany.trim(),
+      },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Error al crear usuario");
+    } else {
+      toast.success("Usuario creado y aprobado");
+      setCreateUserOpen(false);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserName("");
+      setNewUserCompany("");
+      fetchProfiles();
+      fetchUserRestaurants();
+    }
+    setCreatingUser(false);
+  };
+
   const approvedProfiles = useMemo(() => profiles.filter((p) => p.status === "approved"), [profiles]);
 
   return (
@@ -210,14 +247,19 @@ const Admin = () => {
 
         {/* ====== USUARIOS TAB ====== */}
         <TabsContent value="usuarios" className="mt-6 space-y-4">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-            <TabsList>
-              <TabsTrigger value="all">Todos ({counts.all})</TabsTrigger>
-              <TabsTrigger value="pending">Pendientes ({counts.pending})</TabsTrigger>
-              <TabsTrigger value="approved">Aprobados ({counts.approved})</TabsTrigger>
-              <TabsTrigger value="rejected">Rechazados ({counts.rejected})</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+              <TabsList>
+                <TabsTrigger value="all">Todos ({counts.all})</TabsTrigger>
+                <TabsTrigger value="pending">Pendientes ({counts.pending})</TabsTrigger>
+                <TabsTrigger value="approved">Aprobados ({counts.approved})</TabsTrigger>
+                <TabsTrigger value="rejected">Rechazados ({counts.rejected})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Button onClick={() => setCreateUserOpen(true)} className="gap-2">
+              <Plus size={16} /> Crear usuario
+            </Button>
+          </div>
 
           <Card>
             <CardHeader className="pb-4"><CardTitle className="text-lg">Usuarios</CardTitle></CardHeader>
@@ -388,6 +430,22 @@ const Admin = () => {
                 </Button>
               </div>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Crear usuario</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nombre</Label><Input value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Nombre completo" /></div>
+            <div className="space-y-2"><Label>Empresa</Label><Input value={newUserCompany} onChange={(e) => setNewUserCompany(e.target.value)} placeholder="Empresa" /></div>
+            <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="email@ejemplo.com" /></div>
+            <div className="space-y-2"><Label>Contraseña *</Label><Input type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Mínimo 6 caracteres" /></div>
+            <Button onClick={handleCreateUser} disabled={creatingUser} className="w-full gap-2">
+              {creatingUser ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Crear usuario
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
