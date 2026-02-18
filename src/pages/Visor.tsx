@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef, useMemo } from "react";
-import { FileSearch, Upload, Download, FileDown, TrendingUp, TrendingDown, DollarSign, BarChart3, Wallet } from "lucide-react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { FileSearch, Upload, Download, FileDown, TrendingUp, TrendingDown, DollarSign, BarChart3, Wallet, History } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useUserRestaurants } from "@/hooks/useUserRestaurants";
+import { usePylHistory } from "@/hooks/usePylHistory";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { parsePYL, downloadPYL, PYL_LINE_MAP, type PYLData } from "@/lib/pyl";
 
@@ -23,7 +26,6 @@ function fmtPct(n: number): string {
   return `${n < 0 ? "-" : ""}${abs.toFixed(2).replace(".", ",")}%`;
 }
 
-// Visual separators before these line numbers
 const SEPARATOR_BEFORE = new Set([6, 7, 8, 22, 23, 24, 33, 34, 36, 37, 38, 40, 41, 42]);
 
 const Visor = () => {
@@ -31,6 +33,23 @@ const Visor = () => {
   const [dragOver, setDragOver] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   const { restaurants } = useUserRestaurants();
+  const { pylFiles } = usePylHistory();
+  const location = useLocation();
+
+  // Load from location state (from History / Dashboard)
+  useEffect(() => {
+    const state = location.state as { pylContent?: string } | null;
+    if (state?.pylContent) {
+      try {
+        const parsed = parsePYL(state.pylContent);
+        setData(parsed);
+      } catch (e: any) {
+        toast.error(`Error al cargar PYL: ${e.message}`);
+      }
+      // Clear state to avoid re-loading on nav
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const restaurantName = useMemo(() => {
     if (!data) return null;
@@ -65,9 +84,26 @@ const Visor = () => {
     window.print();
   }, []);
 
+  const handleLoadFromHistory = (pylId: string) => {
+    const pyl = pylFiles.find((p) => p.id === pylId);
+    if (!pyl) return;
+    try {
+      const parsed = parsePYL(pyl.content);
+      setData(parsed);
+      toast.success("PYL cargado desde historial");
+    } catch (e: any) {
+      toast.error(`Error al cargar: ${e.message}`);
+    }
+  };
+
+  const restaurantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of restaurants) map[r.code] = r.name;
+    return map;
+  }, [restaurants]);
+
   const ventas = data ? data.lines[0] : 0;
   const pctVentas = (val: number) => ventas !== 0 ? (val / ventas) * 100 : 0;
-
   const monthName = data ? MONTH_NAMES[parseInt(data.month, 10) - 1] || data.month : "";
 
   return (
@@ -82,30 +118,52 @@ const Visor = () => {
         </div>
       </div>
 
-      {/* Upload zone */}
+      {/* Upload zone + History selector */}
       {!data && (
-        <Card
-          className={`border-2 border-dashed transition-colors cursor-pointer ${
-            dragOver ? "border-secondary bg-secondary/5" : "border-border hover:border-secondary/50"
-          }`}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-          onClick={() => document.getElementById("pyl-input")?.click()}
-        >
-          <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
-            <Upload className="text-muted-foreground" size={40} />
-            <p className="text-sm font-medium text-foreground">Arrastra tu archivo .pyl aquí</p>
-            <p className="text-xs text-muted-foreground">o haz clic para seleccionar</p>
-            <input
-              id="pyl-input"
-              type="file"
-              accept=".pyl"
-              className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-            />
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {pylFiles.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <History size={16} className="text-muted-foreground" /> Cargar desde historial
+              </label>
+              <Select onValueChange={handleLoadFromHistory}>
+                <SelectTrigger className="w-full max-w-md">
+                  <SelectValue placeholder="Seleccionar PYL guardado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pylFiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.local_code}{restaurantMap[p.local_code] ? ` — ${restaurantMap[p.local_code]}` : ""} | {MONTH_NAMES[parseInt(p.month, 10) - 1]} {p.year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <Card
+            className={`border-2 border-dashed transition-colors cursor-pointer ${
+              dragOver ? "border-secondary bg-secondary/5" : "border-border hover:border-secondary/50"
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            onClick={() => document.getElementById("pyl-input")?.click()}
+          >
+            <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
+              <Upload className="text-muted-foreground" size={40} />
+              <p className="text-sm font-medium text-foreground">Arrastra tu archivo .pyl aquí</p>
+              <p className="text-xs text-muted-foreground">o haz clic para seleccionar</p>
+              <input
+                id="pyl-input"
+                type="file"
+                accept=".pyl"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {data && (
@@ -127,13 +185,10 @@ const Visor = () => {
             {/* P&L Table */}
             <div ref={tableRef} className="print:shadow-none">
               <Card className="overflow-hidden">
-                {/* Header */}
                 <div className="bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))] px-6 py-4">
                   <h2 className="text-lg font-medium">Site {data.localCode}{restaurantName ? ` — ${restaurantName}` : ""}</h2>
                   <p className="text-sm opacity-80">{monthName} {data.year}</p>
                 </div>
-
-                {/* Table */}
                 <div className="overflow-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -152,7 +207,6 @@ const Visor = () => {
                         const isTotal = info.type === "total";
                         const showSep = SEPARATOR_BEFORE.has(info.lineNumber);
                         const isNeg = value < 0;
-
                         return (
                           <tr
                             key={info.lineNumber}
@@ -186,39 +240,11 @@ const Visor = () => {
 
             {/* KPI Panel */}
             <div className="space-y-4">
-              <KpiCard
-                icon={<DollarSign size={20} />}
-                label="Ventas Netas"
-                value={`${fmtNum(ventas)} €`}
-                color="text-secondary"
-              />
-              <KpiCard
-                icon={<TrendingUp size={20} />}
-                label="Margen Bruto (RBE)"
-                value={fmtPct(pctVentas(data.lines[6]))}
-                sub={`${fmtNum(data.lines[6])} €`}
-                color="text-success"
-              />
-              <KpiCard
-                icon={<BarChart3 size={20} />}
-                label="P.A.C."
-                value={fmtPct(pctVentas(data.lines[22]))}
-                sub={`${fmtNum(data.lines[22])} €`}
-                color="text-secondary"
-              />
-              <KpiCard
-                icon={data.lines[39] >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                label="Resultado Neto"
-                value={fmtPct(pctVentas(data.lines[39]))}
-                sub={`${fmtNum(data.lines[39])} €`}
-                color={data.lines[39] >= 0 ? "text-success" : "text-destructive"}
-              />
-              <KpiCard
-                icon={<Wallet size={20} />}
-                label="Cash Flow"
-                value={`${fmtNum(data.lines[41])} €`}
-                color={data.lines[41] >= 0 ? "text-success" : "text-destructive"}
-              />
+              <KpiCard icon={<DollarSign size={20} />} label="Ventas Netas" value={`${fmtNum(ventas)} €`} color="text-secondary" />
+              <KpiCard icon={<TrendingUp size={20} />} label="Margen Bruto (RBE)" value={fmtPct(pctVentas(data.lines[6]))} sub={`${fmtNum(data.lines[6])} €`} color="text-success" />
+              <KpiCard icon={<BarChart3 size={20} />} label="P.A.C." value={fmtPct(pctVentas(data.lines[22]))} sub={`${fmtNum(data.lines[22])} €`} color="text-secondary" />
+              <KpiCard icon={data.lines[39] >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />} label="Resultado Neto" value={fmtPct(pctVentas(data.lines[39]))} sub={`${fmtNum(data.lines[39])} €`} color={data.lines[39] >= 0 ? "text-success" : "text-destructive"} />
+              <KpiCard icon={<Wallet size={20} />} label="Cash Flow" value={`${fmtNum(data.lines[41])} €`} color={data.lines[41] >= 0 ? "text-success" : "text-destructive"} />
             </div>
           </div>
         </>

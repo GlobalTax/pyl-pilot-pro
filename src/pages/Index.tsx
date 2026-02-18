@@ -1,11 +1,14 @@
-import { Link } from "react-router-dom";
-import { FileUp, Eye, Download, HelpCircle, Clock, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { FileUp, Eye, Download, HelpCircle, Clock, Info, FileSpreadsheet, Sparkles, PenLine } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { PYL_LINE_MAP } from "@/lib/pyl";
-import { useActivity } from "@/contexts/ActivityContext";
+import { usePylHistory } from "@/hooks/usePylHistory";
+import { useUserRestaurants } from "@/hooks/useUserRestaurants";
+import { useMemo } from "react";
 
 const quickLinks = [
   { to: "/convertir", icon: FileUp, title: "Convertir a PYL", desc: "Excel/PDF → .pyl" },
@@ -14,8 +17,29 @@ const quickLinks = [
   { to: "/ayuda", icon: HelpCircle, title: "Ayuda", desc: "Guía de uso" },
 ];
 
+const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+const sourceIcon = (source: string) => {
+  switch (source) {
+    case "excel": return <FileSpreadsheet size={12} className="text-success" />;
+    case "pdf_image": return <Sparkles size={12} className="text-secondary" />;
+    case "manual": return <PenLine size={12} className="text-primary" />;
+    default: return null;
+  }
+};
+
 const Index = () => {
-  const { activity } = useActivity();
+  const { pylFiles, loading } = usePylHistory();
+  const { restaurants } = useUserRestaurants();
+  const navigate = useNavigate();
+
+  const restaurantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of restaurants) map[r.code] = r.name;
+    return map;
+  }, [restaurants]);
+
+  const recentPyls = pylFiles.slice(0, 5);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -44,7 +68,7 @@ const Index = () => {
         ))}
       </div>
 
-      {/* Recent activity */}
+      {/* Recent activity from DB */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
@@ -53,14 +77,28 @@ const Index = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {activity.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay actividad reciente en esta sesión.</p>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando...</p>
+          ) : recentPyls.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay actividad reciente. <Link to="/convertir" className="text-primary hover:underline">Genera tu primer PYL →</Link></p>
           ) : (
             <ul className="divide-y">
-              {activity.map((a, i) => (
-                <li key={i} className="py-2 flex justify-between text-sm">
-                  <span className="font-medium">{a.name}</span>
-                  <span className="text-muted-foreground">{a.localCode} · {a.date}</span>
+              {recentPyls.map((p) => (
+                <li
+                  key={p.id}
+                  className="py-2 flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 -mx-2 px-2 rounded-md transition-colors"
+                  onClick={() => navigate("/visor", { state: { pylContent: p.content } })}
+                >
+                  <div className="flex items-center gap-2">
+                    {sourceIcon(p.source)}
+                    <span className="font-medium">{p.filename}</span>
+                    {restaurantMap[p.local_code] && (
+                      <span className="text-muted-foreground text-xs">— {restaurantMap[p.local_code]}</span>
+                    )}
+                  </div>
+                  <span className="text-muted-foreground text-xs">
+                    {MONTH_NAMES[parseInt(p.month, 10) - 1]} {p.year} · {new Date(p.created_at).toLocaleDateString("es-ES")}
+                  </span>
                 </li>
               ))}
             </ul>

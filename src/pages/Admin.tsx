@@ -13,9 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shield, ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload, KeyRound } from "lucide-react";
+import { Shield, ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload, KeyRound, History, FileSpreadsheet, Sparkles, PenLine, Download, AlertTriangle } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
 import BulkRestaurantUpload from "@/components/BulkRestaurantUpload";
+import { useAdminPylHistory, type PylFileWithProfile } from "@/hooks/usePylHistory";
+import { parsePYL, downloadPYL } from "@/lib/pyl";
 
 type Filter = "all" | "pending" | "approved" | "rejected";
 
@@ -32,6 +34,143 @@ interface UserRestaurantAssignment {
   user_id: string;
   restaurant_id: string;
   profiles: { full_name: string; email: string } | null;
+}
+
+const MONTH_NAMES_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+const adminSourceIcon = (source: string) => {
+  switch (source) {
+    case "excel": return <FileSpreadsheet size={14} className="text-success" />;
+    case "pdf_image": return <Sparkles size={14} className="text-secondary" />;
+    case "manual": return <PenLine size={14} className="text-primary" />;
+    default: return null;
+  }
+};
+
+function AdminHistorialTab({ restaurants }: { restaurants: Restaurant[] }) {
+  const { pylFiles, loading } = useAdminPylHistory();
+  const [filterUser, setFilterUser] = useState("");
+  const [filterYear, setFilterYear] = useState("all");
+
+  const years = useMemo(() => [...new Set(pylFiles.map((p) => p.year))].sort().reverse(), [pylFiles]);
+
+  const filtered = useMemo(() => {
+    return pylFiles.filter((p) => {
+      if (filterUser && !p.profiles?.full_name?.toLowerCase().includes(filterUser.toLowerCase()) && !p.profiles?.company?.toLowerCase().includes(filterUser.toLowerCase())) return false;
+      if (filterYear !== "all" && p.year !== filterYear) return false;
+      return true;
+    });
+  }, [pylFiles, filterUser, filterYear]);
+
+  const now = new Date();
+  const currentYear = String(now.getFullYear());
+  const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+
+  const coveredCodes = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of pylFiles) {
+      if (p.year === currentYear && p.month === currentMonth) set.add(p.local_code);
+    }
+    return set;
+  }, [pylFiles, currentYear, currentMonth]);
+
+  const pendingRestaurants = useMemo(
+    () => restaurants.filter((r) => !coveredCodes.has(r.code)),
+    [restaurants, coveredCodes]
+  );
+
+  const handleDownload = (pyl: PylFileWithProfile) => {
+    try {
+      const data = parsePYL(pyl.content);
+      downloadPYL(data);
+      toast.success(`${pyl.filename} descargado`);
+    } catch {
+      toast.error("Error al descargar");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {pendingRestaurants.length > 0 && (
+        <Card className="border-warning/50 bg-warning/5">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 text-warning text-sm font-medium mb-2">
+              <AlertTriangle size={16} />
+              {pendingRestaurants.length} restaurante(s) sin PYL en {MONTH_NAMES_SHORT[now.getMonth()]} {currentYear}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {pendingRestaurants.slice(0, 20).map((r) => (
+                <Badge key={r.code} variant="outline" className="text-xs">{r.code} {r.name}</Badge>
+              ))}
+              {pendingRestaurants.length > 20 && <Badge variant="outline" className="text-xs">+{pendingRestaurants.length - 20} más</Badge>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <Input placeholder="Buscar por usuario/empresa..." value={filterUser} onChange={(e) => setFilterUser(e.target.value)} className="w-64" />
+        <Select value={filterYear} onValueChange={setFilterYear}>
+          <SelectTrigger className="w-32"><SelectValue placeholder="Año" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-4"><CardTitle className="text-lg">Historial global ({filtered.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="animate-spin text-muted-foreground" size={24} /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No hay PYLs generados</p>
+          ) : (
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Local</TableHead>
+                    <TableHead>Periodo</TableHead>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Origen</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((pyl) => (
+                    <TableRow key={pyl.id}>
+                      <TableCell className="font-mono font-medium">{pyl.local_code}</TableCell>
+                      <TableCell>{MONTH_NAMES_SHORT[parseInt(pyl.month, 10) - 1]} {pyl.year}</TableCell>
+                      <TableCell>
+                        <div>
+                          <span className="text-sm">{pyl.profiles?.full_name || "—"}</span>
+                          {pyl.profiles?.company && <span className="text-xs text-muted-foreground ml-1">({pyl.profiles.company})</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="gap-1 text-xs">
+                          {adminSourceIcon(pyl.source)} {pyl.source === "excel" ? "Excel" : pyl.source === "pdf_image" ? "IA" : "Manual"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{new Date(pyl.created_at).toLocaleDateString("es-ES")}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => handleDownload(pyl)} title="Descargar">
+                          <Download size={14} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 const Admin = () => {
@@ -353,6 +492,7 @@ const Admin = () => {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users size={16} /> Usuarios</TabsTrigger>
           <TabsTrigger value="restaurantes" className="gap-2"><Store size={16} /> Restaurantes</TabsTrigger>
+          <TabsTrigger value="historial" className="gap-2"><History size={16} /> Historial</TabsTrigger>
         </TabsList>
 
         {/* ====== USUARIOS TAB ====== */}
@@ -514,6 +654,11 @@ const Admin = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ====== HISTORIAL TAB ====== */}
+        <TabsContent value="historial" className="mt-6 space-y-4">
+          <AdminHistorialTab restaurants={restaurants} />
         </TabsContent>
       </Tabs>
 

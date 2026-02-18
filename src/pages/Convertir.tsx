@@ -10,11 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult, type DetectedLine, type TotalValidation } from "@/lib/excel-pyl";
 import { downloadPYL, PYL_LINE_MAP } from "@/lib/pyl";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivity } from "@/contexts/ActivityContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRestaurants } from "@/hooks/useUserRestaurants";
 import { RestaurantSelector } from "@/components/RestaurantSelector";
+import { checkExistingPyl, savePylToDb } from "@/hooks/usePylHistory";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
@@ -73,8 +78,26 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
+interface PendingSave {
+  localCode: string;
+  year: string;
+  month: string;
+  lines: number[];
+  source: string;
+  existingId: string;
+}
+
 const Convertir = () => {
   const { addActivity } = useActivity();
+  const { user } = useAuth();
+  const { restaurants } = useUserRestaurants();
+  const queryClient = useQueryClient();
+
+  // --- Overwrite modal state ---
+  const [overwriteOpen, setOverwriteOpen] = useState(false);
+  const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
+  const [saving, setSaving] = useState(false);
+
   // --- Excel tab state ---
   const [result, setResult] = useState<ExcelParseResult | null>(null);
   const [year, setYear] = useState("");
@@ -112,6 +135,63 @@ const Convertir = () => {
     () => new Map(pdfValidationResults.filter((v) => !v.valid).map((v) => [v.lineNumber, v])),
     [pdfValidationResults]
   );
+
+  // --- Common save logic ---
+  const saveAndDownload = async (lc: string, yr: string, mo: string, lineValues: number[], source: string) => {
+    // Always download
+    downloadPYL({ year: yr, month: mo, localCode: lc, lines: lineValues });
+    addActivity({ name: `${yr.slice(-2)}${mo}${lc}.pyl`, date: new Date().toLocaleString("es-ES"), localCode: lc });
+
+    if (!user) {
+      toast.success("Archivo descargado (sin sesión, no se guardó en historial)");
+      return;
+    }
+
+    try {
+      const existing = await checkExistingPyl(lc, yr, mo);
+      if (existing) {
+        setPendingSave({ localCode: lc, year: yr, month: mo, lines: lineValues, source, existingId: existing.id });
+        setOverwriteOpen(true);
+        return;
+      }
+      await savePylToDb({ userId: user.id, localCode: lc, year: yr, month: mo, lines: lineValues, source, restaurants });
+      queryClient.invalidateQueries({ queryKey: ["pyl-history"] });
+      toast.success("PYL descargado y guardado en historial");
+    } catch (err: any) {
+      console.error("Save error:", err);
+      toast.warning("Archivo descargado, pero no se pudo guardar en historial");
+    }
+  };
+
+  const handleOverwriteConfirm = async () => {
+    if (!pendingSave || !user) return;
+    setSaving(true);
+    try {
+      await savePylToDb({
+        userId: user.id,
+        localCode: pendingSave.localCode,
+        year: pendingSave.year,
+        month: pendingSave.month,
+        lines: pendingSave.lines,
+        source: pendingSave.source,
+        restaurants,
+        existingId: pendingSave.existingId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pyl-history"] });
+      toast.success("PYL sobrescrito correctamente");
+    } catch {
+      toast.error("Error al sobrescribir");
+    }
+    setSaving(false);
+    setOverwriteOpen(false);
+    setPendingSave(null);
+  };
+
+  const handleOverwriteCancel = () => {
+    setOverwriteOpen(false);
+    setPendingSave(null);
+    toast.info("PYL descargado (no se guardó en historial)");
+  };
 
   const handleManualChange = (index: number, raw: string) => {
     const num = raw === "" || raw === "-" ? 0 : parseFloat(raw);
@@ -187,9 +267,7 @@ const Convertir = () => {
     }
     if (!/^\d{4}$/.test(pdfYear)) { toast.error("El año debe tener 4 dígitos"); return; }
     const data = resultToPYLData({ year: pdfYear, month: pdfMonth, localCode: pdfLocalCode, lines: pdfLines });
-    downloadPYL(data);
-    addActivity({ name: `${pdfYear.slice(-2)}${pdfMonth}${pdfLocalCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode: pdfLocalCode });
-    toast.success(`Archivo ${pdfYear.slice(-2)}${pdfMonth}${pdfLocalCode}.pyl descargado`);
+    saveAndDownload(pdfLocalCode, pdfYear, pdfMonth, data.lines, "pdf_image");
   };
 
   const handleManualGenerate = () => {
@@ -198,9 +276,7 @@ const Convertir = () => {
       return;
     }
     if (!/^\d{4}$/.test(manualYear)) { toast.error("El año debe tener 4 dígitos"); return; }
-    downloadPYL({ year: manualYear, month: manualMonth, localCode: manualLocalCode, lines: computedManual });
-    addActivity({ name: `${manualYear.slice(-2)}${manualMonth}${manualLocalCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode: manualLocalCode });
-    toast.success(`Archivo ${manualYear.slice(-2)}${manualMonth}${manualLocalCode}.pyl descargado`);
+    saveAndDownload(manualLocalCode, manualYear, manualMonth, computedManual, "manual");
   };
 
   const handleManualClear = () => {
@@ -257,9 +333,7 @@ const Convertir = () => {
     }
     if (!/^\d{4}$/.test(year)) { toast.error("El año debe tener 4 dígitos"); return; }
     const data = resultToPYLData({ year, month, localCode, lines });
-    downloadPYL(data);
-    addActivity({ name: `${year.slice(-2)}${month}${localCode}.pyl`, date: new Date().toLocaleString("es-ES"), localCode });
-    toast.success(`Archivo ${year.slice(-2)}${month}${localCode}.pyl descargado`);
+    saveAndDownload(localCode, year, month, data.lines, "excel");
   };
 
   const handleValidate = () => setValidationOpen(true);
@@ -684,6 +758,24 @@ const Convertir = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Overwrite Confirmation */}
+      <AlertDialog open={overwriteOpen} onOpenChange={(open) => { if (!open) handleOverwriteCancel(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>PYL ya existente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ya existe un PYL para el Local <strong>{pendingSave?.localCode}</strong> — {pendingSave?.month}/{pendingSave?.year}. ¿Quieres sobrescribirlo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving} onClick={handleOverwriteCancel}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleOverwriteConfirm} disabled={saving} className="gap-2">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : null} Sobrescribir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
