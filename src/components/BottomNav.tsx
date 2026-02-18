@@ -1,6 +1,7 @@
-import { LayoutDashboard, FileOutput, FileSearch, Download } from "lucide-react";
+import { LayoutDashboard, FileOutput, FileSearch, Download, Shield } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -10,9 +11,15 @@ const navItems = [
 ];
 
 export function BottomNav() {
+  const { isAdmin } = useAuth();
+
+  const allItems = isAdmin
+    ? [...navItems, { to: "/admin", icon: Shield, label: "Admin" }]
+    : navItems;
+
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border flex justify-around py-2">
-      {navItems.map((item) => (
+      {allItems.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}

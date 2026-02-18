@@ -1,6 +1,7 @@
-import { LayoutDashboard, FileOutput, FileSearch, Download, PanelLeftClose, PanelLeft } from "lucide-react";
+import { LayoutDashboard, FileOutput, FileSearch, Download, PanelLeftClose, PanelLeft, Shield } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -15,6 +16,12 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
+  const { isAdmin } = useAuth();
+
+  const allItems = isAdmin
+    ? [...navItems, { to: "/admin", icon: Shield, label: "Admin" }]
+    : navItems;
+
   return (
     <aside
       className={cn(
@@ -33,7 +40,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </div>
 
       <nav className="flex-1 flex flex-col gap-0.5 px-2">
-        {navItems.map((item) => (
+        {allItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
