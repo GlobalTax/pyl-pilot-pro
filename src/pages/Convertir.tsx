@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult, type DetectedLine } from "@/lib/excel-pyl";
+import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult, type DetectedLine, type TotalValidation } from "@/lib/excel-pyl";
 import { downloadPYL, PYL_LINE_MAP } from "@/lib/pyl";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivity } from "@/contexts/ActivityContext";
@@ -100,6 +100,17 @@ const Convertir = () => {
   const [pdfMonth, setPdfMonth] = useState("");
   const [pdfLocalCode, setPdfLocalCode] = useState("");
   const [pdfLines, setPdfLines] = useState<DetectedLine[]>([]);
+  const [pdfValidationOpen, setPdfValidationOpen] = useState(false);
+
+  const pdfValidationResults = useMemo(
+    () => (pdfLines.length ? validateTotals(pdfLines.map((l) => l.value)) : []),
+    [pdfLines]
+  );
+
+  const pdfValidationWarnings = useMemo(
+    () => new Map(pdfValidationResults.filter((v) => !v.valid).map((v) => [v.lineNumber, v])),
+    [pdfValidationResults]
+  );
 
   const handleManualChange = (index: number, raw: string) => {
     const num = raw === "" || raw === "-" ? 0 : parseFloat(raw);
@@ -465,8 +476,28 @@ const Convertir = () => {
               {/* Results */}
               {pdfLines.length > 0 && (
                 <>
+                  {pdfValidationWarnings.size > 0 && (
+                    <Card className="border-warning/50 bg-warning/5">
+                      <CardContent className="py-3 px-4">
+                        <div className="flex items-center gap-2 text-warning text-sm font-medium mb-2">
+                          <AlertTriangle size={16} />
+                          {pdfValidationWarnings.size} total(es) no coinciden con las sumas esperadas
+                        </div>
+                        <div className="space-y-1">
+                          {Array.from(pdfValidationWarnings.values()).map((v) => (
+                            <div key={v.lineNumber} className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>L{String(v.lineNumber).padStart(2, "0")} — {v.label}</span>
+                              <span className="text-destructive font-mono">{v.actual} → esperado {v.expected}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div className="flex flex-wrap gap-3">
                     <Button onClick={handlePdfGenerate} className="gap-2"><Download size={16} /> Generar .pyl</Button>
+                    <Button variant="outline" onClick={() => setPdfValidationOpen(true)} className="gap-2"><ClipboardCheck size={16} /> Validar totales</Button>
                     <Button variant="outline" onClick={handlePdfExtract} disabled={pdfExtracting} className="gap-2">
                       {pdfExtracting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                       Re-extraer
@@ -493,21 +524,25 @@ const Convertir = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {pdfLines.map((line, i) => (
-                              <TableRow key={line.lineNumber} className={line.type === "total" ? "bg-muted/50 font-semibold" : ""}>
+                            {pdfLines.map((line, i) => {
+                              const warning = pdfValidationWarnings.get(line.lineNumber);
+                              return (
+                              <TableRow key={line.lineNumber} className={`${line.type === "total" ? "bg-muted/50 font-semibold" : ""} ${warning ? "bg-warning/5" : ""}`}>
                                 <TableCell className="font-mono text-muted-foreground">{String(line.lineNumber).padStart(2, "0")}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
-                                    <StatusIcon status={line.status} />
+                                    {warning ? <AlertTriangle className="text-warning" size={16} /> : <StatusIcon status={line.status} />}
                                     <span className="text-sm">{line.label}</span>
+                                    {warning && <span className="text-xs text-warning">(esperado {warning.expected})</span>}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Input type="number" step="any" value={line.value || ""} onChange={(e) => updatePdfLineValue(i, e.target.value)} className="h-8 text-right text-sm w-full" />
+                                  <Input type="number" step="any" value={line.value || ""} onChange={(e) => updatePdfLineValue(i, e.target.value)} className={`h-8 text-right text-sm w-full ${warning ? "border-warning" : ""}`} />
                                 </TableCell>
                                 <TableCell className="text-center"><StatusBadge status={line.status} /></TableCell>
                               </TableRow>
-                            ))}
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
@@ -623,6 +658,36 @@ const Convertir = () => {
             ))}
             {validationResults.length > 0 && (
               <p className="text-xs text-muted-foreground pt-2">{validationResults.filter((v) => v.valid).length}/{validationResults.length} totales correctos</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Validation Dialog */}
+      <Dialog open={pdfValidationOpen} onOpenChange={setPdfValidationOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Validación de Totales (IA)</DialogTitle>
+            <DialogDescription>Comprobación de que los totales extraídos cuadran con las sumas esperadas</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {pdfValidationResults.map((v) => (
+              <div key={v.lineNumber} className={`flex items-center justify-between rounded-md p-3 text-sm ${v.valid ? "bg-success/10" : "bg-destructive/10"}`}>
+                <div className="flex items-center gap-2">
+                  {v.valid ? <CheckCircle2 className="text-success" size={16} /> : <XCircle className="text-destructive" size={16} />}
+                  <span>L{String(v.lineNumber).padStart(2, "0")} — {v.label}</span>
+                </div>
+                <div className="text-right">
+                  {v.valid ? (
+                    <span className="text-success">{v.actual}</span>
+                  ) : (
+                    <span className="text-destructive">{v.actual} <span className="text-muted-foreground">→ esperado {v.expected}</span></span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {pdfValidationResults.length > 0 && (
+              <p className="text-xs text-muted-foreground pt-2">{pdfValidationResults.filter((v) => v.valid).length}/{pdfValidationResults.length} totales correctos</p>
             )}
           </div>
         </DialogContent>
