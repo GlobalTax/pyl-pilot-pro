@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2 } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
 
 type Filter = "all" | "pending" | "approved" | "rejected";
@@ -63,6 +64,7 @@ const Admin = () => {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserName, setNewUserName] = useState("");
   const [newUserCompany, setNewUserCompany] = useState("");
+  const [newUserType, setNewUserType] = useState<"nrro" | "franquiciado">("franquiciado");
   const [creatingUser, setCreatingUser] = useState(false);
 
   const fetchProfiles = async () => {
@@ -208,6 +210,7 @@ const Admin = () => {
         password: newUserPassword,
         full_name: newUserName.trim(),
         company: newUserCompany.trim(),
+        user_type: newUserType,
       },
     });
     if (error || data?.error) {
@@ -219,6 +222,7 @@ const Admin = () => {
       setNewUserPassword("");
       setNewUserName("");
       setNewUserCompany("");
+      setNewUserType("franquiciado");
       fetchProfiles();
       fetchUserRestaurants();
     }
@@ -276,6 +280,7 @@ const Admin = () => {
                         <TableHead>Nombre</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Empresa</TableHead>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Restaurantes</TableHead>
                         <TableHead>Registro</TableHead>
                         <TableHead>Estado</TableHead>
@@ -288,6 +293,11 @@ const Admin = () => {
                           <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                           <TableCell>{p.email}</TableCell>
                           <TableCell>{p.company || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={(p as any).user_type === "nrro" ? "default" : "secondary"} className="text-xs">
+                              {(p as any).user_type === "nrro" ? "NRRO" : "Franquiciado"}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {(userRestaurantMap[p.id] || []).map((r: any) => (
@@ -443,6 +453,19 @@ const Admin = () => {
             <div className="space-y-2"><Label>Empresa</Label><Input value={newUserCompany} onChange={(e) => setNewUserCompany(e.target.value)} placeholder="Empresa" /></div>
             <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="email@ejemplo.com" /></div>
             <div className="space-y-2"><Label>Contraseña *</Label><Input type="password" value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="Mínimo 6 caracteres" /></div>
+            <div className="space-y-2">
+              <Label>Tipo de usuario *</Label>
+              <RadioGroup value={newUserType} onValueChange={(v) => setNewUserType(v as "nrro" | "franquiciado")} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="franquiciado" id="type-franquiciado" />
+                  <Label htmlFor="type-franquiciado" className="font-normal cursor-pointer">Franquiciado</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="nrro" id="type-nrro" />
+                  <Label htmlFor="type-nrro" className="font-normal cursor-pointer">NRRO</Label>
+                </div>
+              </RadioGroup>
+            </div>
             <Button onClick={handleCreateUser} disabled={creatingUser} className="w-full gap-2">
               {creatingUser ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Crear usuario
             </Button>

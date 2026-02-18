@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, full_name, company } = await req.json();
+    const { email, password, full_name, company, user_type } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email and password are required" }), {
@@ -85,9 +85,13 @@ Deno.serve(async (req) => {
 
     // The handle_new_user trigger creates the profile with status 'pending'
     // Update it to 'approved'
+    const updatePayload: Record<string, string> = { status: "approved" };
+    if (user_type === "nrro" || user_type === "franquiciado") {
+      updatePayload.user_type = user_type;
+    }
     const { error: updateError } = await adminClient
       .from("profiles")
-      .update({ status: "approved" })
+      .update(updatePayload)
       .eq("id", userData.user.id);
 
     if (updateError) {

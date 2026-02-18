@@ -16,6 +16,7 @@ export interface Profile {
   full_name: string;
   company: string;
   status: "pending" | "approved" | "rejected";
+  user_type: "nrro" | "franquiciado";
   created_at: string;
 }
 
