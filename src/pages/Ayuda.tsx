@@ -81,14 +81,14 @@ const Ayuda = () => (
         <HelpCircle className="text-primary" size={24} />
       </div>
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Ayuda</h1>
+        <h1 className="text-2xl font-medium text-foreground">Ayuda</h1>
         <p className="text-sm text-muted-foreground">Guía de uso y preguntas frecuentes</p>
       </div>
     </div>
 
     {/* Step-by-step guide */}
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+      <h2 className="text-lg font-medium text-foreground flex items-center gap-2">
         <FileText size={18} className="text-muted-foreground" />
         Guía paso a paso
       </h2>
@@ -122,7 +122,7 @@ const Ayuda = () => (
 
     {/* FAQ */}
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+      <h2 className="text-lg font-medium text-foreground flex items-center gap-2">
         <HelpCircle size={18} className="text-muted-foreground" />
         Preguntas frecuentes
       </h2>

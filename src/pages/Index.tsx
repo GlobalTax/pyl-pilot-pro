@@ -21,7 +21,7 @@ const Index = () => {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Bienvenido a PYL Manager</h1>
+        <h1 className="text-3xl font-medium tracking-tight">Bienvenido a PYL Manager</h1>
         <p className="text-muted-foreground mt-1">Herramienta de gestión de P&amp;L para franquicias</p>
       </div>
 
@@ -103,7 +103,7 @@ const Index = () => {
                       <TableCell className="font-mono">{String(l.lineNumber).padStart(2, "0")}</TableCell>
                       <TableCell>{l.label}</TableCell>
                       <TableCell>
-                        <span className={l.type === "total" ? "font-semibold text-primary" : "text-muted-foreground"}>
+                        <span className={l.type === "total" ? "font-medium text-primary" : "text-muted-foreground"}>
                           {l.type}
                         </span>
                       </TableCell>

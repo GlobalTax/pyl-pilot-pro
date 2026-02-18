@@ -272,7 +272,7 @@ const Convertir = () => {
           <FileOutput className="text-secondary" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Convertir a PYL</h1>
+          <h1 className="text-2xl font-medium text-foreground">Convertir a PYL</h1>
           <p className="text-sm text-muted-foreground">Convierte tu P&L a formato .pyl</p>
         </div>
       </div>
@@ -371,7 +371,7 @@ const Convertir = () => {
                       </TableHeader>
                       <TableBody>
                         {lines.map((line, i) => (
-                          <TableRow key={line.lineNumber} className={line.type === "total" ? "bg-muted/50 font-semibold" : ""}>
+                          <TableRow key={line.lineNumber} className={line.type === "total" ? "bg-muted/50 font-medium" : ""}>
                             <TableCell className="font-mono text-muted-foreground">{String(line.lineNumber).padStart(2, "0")}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -527,7 +527,7 @@ const Convertir = () => {
                             {pdfLines.map((line, i) => {
                               const warning = pdfValidationWarnings.get(line.lineNumber);
                               return (
-                              <TableRow key={line.lineNumber} className={`${line.type === "total" ? "bg-muted/50 font-semibold" : ""} ${warning ? "bg-warning/5" : ""}`}>
+                              <TableRow key={line.lineNumber} className={`${line.type === "total" ? "bg-muted/50 font-medium" : ""} ${warning ? "bg-warning/5" : ""}`}>
                                 <TableCell className="font-mono text-muted-foreground">{String(line.lineNumber).padStart(2, "0")}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
@@ -604,7 +604,7 @@ const Convertir = () => {
                     <div
                       key={line.lineNumber}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 ${
-                        isTotal ? "bg-primary text-primary-foreground font-bold" : ""
+                        isTotal ? "bg-primary text-primary-foreground font-medium" : ""
                       }`}
                     >
                       <span className={`font-mono text-xs w-8 shrink-0 ${isTotal ? "text-primary-foreground/70" : "text-muted-foreground"}`}>

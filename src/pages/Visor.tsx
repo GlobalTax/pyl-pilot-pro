@@ -69,7 +69,7 @@ const Visor = () => {
           <FileSearch className="text-secondary" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Visor P&L</h1>
+          <h1 className="text-2xl font-medium text-foreground">Visor P&L</h1>
           <p className="text-sm text-muted-foreground">Visualiza archivos .pyl como P&L formateado</p>
         </div>
       </div>
@@ -121,7 +121,7 @@ const Visor = () => {
               <Card className="overflow-hidden">
                 {/* Header */}
                 <div className="bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))] px-6 py-4">
-                  <h2 className="text-lg font-bold">Site {data.localCode}</h2>
+                  <h2 className="text-lg font-medium">Site {data.localCode}</h2>
                   <p className="text-sm opacity-80">{monthName} {data.year}</p>
                 </div>
 
@@ -150,7 +150,7 @@ const Visor = () => {
                             key={info.lineNumber}
                             className={
                               isTotal
-                                ? "bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))] font-bold"
+                                ? "bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))] font-medium"
                                 : `border-b border-border/50 ${showSep ? "border-t-2 border-t-border" : ""}`
                             }
                           >
@@ -226,7 +226,7 @@ function KpiCard({ icon, label, value, sub, color }: { icon: React.ReactNode; la
         <div className={`shrink-0 mt-0.5 ${color}`}>{icon}</div>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{label}</p>
-          <p className={`text-lg font-bold ${color}`}>{value}</p>
+          <p className={`text-lg font-medium ${color}`}>{value}</p>
           {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
         </div>
       </CardContent>
