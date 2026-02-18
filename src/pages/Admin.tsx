@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
+import BulkRestaurantUpload from "@/components/BulkRestaurantUpload";
 
 type Filter = "all" | "pending" | "approved" | "rejected";
 
@@ -58,6 +59,7 @@ const Admin = () => {
   const [newAddress, setNewAddress] = useState("");
   const [newCity, setNewCity] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   // --- Create user state ---
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -398,7 +400,10 @@ const Admin = () => {
 
         {/* ====== RESTAURANTES TAB ====== */}
         <TabsContent value="restaurantes" className="mt-6 space-y-4">
-          <Button onClick={() => setCreateOpen(true)} className="gap-2"><Plus size={16} /> Crear restaurante</Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setCreateOpen(true)} className="gap-2"><Plus size={16} /> Crear restaurante</Button>
+            <Button onClick={() => setBulkOpen(true)} variant="outline" className="gap-2"><Upload size={16} /> Alta masiva</Button>
+          </div>
 
           <Card>
             <CardHeader className="pb-4"><CardTitle className="text-lg">Todos los restaurantes</CardTitle></CardHeader>
@@ -590,6 +595,8 @@ const Admin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkRestaurantUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={fetchRestaurants} />
     </div>
   );
 };
