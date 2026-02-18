@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload } from "lucide-react";
+import { Shield, ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
 import BulkRestaurantUpload from "@/components/BulkRestaurantUpload";
 
@@ -44,6 +44,7 @@ const Admin = () => {
   const [filter, setFilter] = useState<Filter>("all");
   const [updating, setUpdating] = useState<string | null>(null);
   const [userRestaurantMap, setUserRestaurantMap] = useState<Record<string, Restaurant[]>>({});
+  const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
 
   // --- Restaurants state ---
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -128,6 +129,27 @@ const Admin = () => {
     }
   };
 
+  const fetchAdminRoles = async () => {
+    const { data } = await supabase.from("user_roles").select("user_id, role").eq("role", "admin");
+    if (data) {
+      setAdminUserIds(new Set(data.map((r) => r.user_id)));
+    }
+  };
+
+  const toggleAdmin = async (userId: string) => {
+    const isAdmin = adminUserIds.has(userId);
+    if (isAdmin) {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
+      if (error) { toast.error("Error al quitar rol admin"); return; }
+      toast.success("Rol de admin eliminado");
+    } else {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
+      if (error) { toast.error(error.code === "23505" ? "Ya es admin" : "Error al asignar rol admin"); return; }
+      toast.success("Usuario promovido a admin");
+    }
+    fetchAdminRoles();
+  };
+
   const fetchRestaurants = async () => {
     setRestLoading(true);
     const { data, error } = await supabase.from("restaurants").select("*").order("code");
@@ -150,6 +172,7 @@ const Admin = () => {
     fetchProfiles();
     fetchUserRestaurants();
     fetchRestaurants();
+    fetchAdminRoles();
   }, []);
 
   const filteredProfiles = useMemo(() => {
@@ -342,6 +365,7 @@ const Admin = () => {
                         <TableHead>Restaurantes</TableHead>
                         <TableHead>Registro</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Rol</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -366,6 +390,15 @@ const Admin = () => {
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">{new Date(p.created_at).toLocaleDateString("es-ES")}</TableCell>
                           <TableCell>{statusBadge(p.status)}</TableCell>
+                          <TableCell>
+                            {adminUserIds.has(p.id) ? (
+                              <Badge className="bg-primary/15 text-primary border-primary/30 gap-1 text-xs" variant="outline">
+                                <ShieldCheck size={12} /> Admin
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">Usuario</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
                             {p.id !== user?.id && (
                               <div className="flex items-center justify-end gap-2">
@@ -379,6 +412,15 @@ const Admin = () => {
                                     {updating === p.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Rechazar
                                   </Button>
                                 )}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className={adminUserIds.has(p.id) ? "text-primary hover:bg-primary/10" : "hover:bg-muted"}
+                                  onClick={() => toggleAdmin(p.id)}
+                                  title={adminUserIds.has(p.id) ? "Quitar admin" : "Hacer admin"}
+                                >
+                                  {adminUserIds.has(p.id) ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                                </Button>
                                 <Button size="sm" variant="ghost" className="hover:bg-muted" onClick={() => openEditDialog(p)} title="Editar usuario">
                                   <Pencil size={14} />
                                 </Button>
