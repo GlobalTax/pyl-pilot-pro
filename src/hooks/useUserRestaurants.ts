@@ -12,12 +12,25 @@ export interface Restaurant {
 }
 
 export function useUserRestaurants() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isNrro = profile?.user_type === "nrro";
 
   const query = useQuery({
-    queryKey: ["user-restaurants", user?.id],
+    queryKey: ["user-restaurants", user?.id, profile?.user_type],
     queryFn: async () => {
       if (!user) return [];
+
+      if (isNrro) {
+        // NRRO users can see all restaurants (RLS allows it)
+        const { data, error } = await supabase
+          .from("restaurants")
+          .select("id, code, name, address, city, created_at")
+          .order("code");
+        if (error) throw error;
+        return (data ?? []) as Restaurant[];
+      }
+
+      // Franquiciados only see assigned restaurants
       const { data, error } = await supabase
         .from("user_restaurants")
         .select("restaurant_id, restaurants(id, code, name, address, city, created_at)")
@@ -26,12 +39,13 @@ export function useUserRestaurants() {
       if (error) throw error;
       return (data ?? []).map((r: any) => r.restaurants as Restaurant);
     },
-    enabled: !!user,
+    enabled: !!user && !!profile,
   });
 
   return {
     restaurants: query.data ?? [],
     loading: query.isLoading,
+    isNrro,
     refetch: query.refetch,
   };
 }

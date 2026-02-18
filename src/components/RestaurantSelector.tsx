@@ -13,7 +13,7 @@ interface RestaurantSelectorProps {
 }
 
 export function RestaurantSelector({ value, onChange, className }: RestaurantSelectorProps) {
-  const { restaurants, loading } = useUserRestaurants();
+  const { restaurants, loading, isNrro } = useUserRestaurants();
   const [manual, setManual] = useState(false);
 
   if (loading) {
@@ -21,6 +21,28 @@ export function RestaurantSelector({ value, onChange, className }: RestaurantSel
       <div className="space-y-2">
         <Label>Código Local</Label>
         <Input disabled placeholder="Cargando..." className={className} />
+      </div>
+    );
+  }
+
+  // NRRO users always see the full select — no manual mode needed
+  if (isNrro) {
+    return (
+      <div className="space-y-2">
+        <Label>Código Local</Label>
+        <Select value={value} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger className={`${!value ? "border-destructive" : ""} ${className ?? ""}`}>
+            <SelectValue placeholder="Seleccionar restaurante" />
+          </SelectTrigger>
+          <SelectContent>
+            {restaurants.map((r) => (
+              <SelectItem key={r.id} value={r.code}>
+                {r.code} — {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Todos los restaurantes disponibles</p>
       </div>
     );
   }
@@ -80,10 +102,7 @@ export function RestaurantSelector({ value, onChange, className }: RestaurantSel
   return (
     <div className="space-y-2">
       <Label>Código Local</Label>
-      <Select
-        value={value}
-        onValueChange={(v) => onChange(v)}
-      >
+      <Select value={value} onValueChange={(v) => onChange(v)}>
         <SelectTrigger className={`${!value ? "border-destructive" : ""} ${className ?? ""}`}>
           <SelectValue placeholder="Seleccionar restaurante" />
         </SelectTrigger>
