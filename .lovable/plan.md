@@ -1,45 +1,72 @@
 
 
-## Mejora del prompt de IA para McDonald's Espana
+## Cambio de tipografia y look & feel estilo Apollo
 
-### Problema actual
-El prompt actual es generico: solo lista los 43 conceptos por nombre y dice "pon 0 si no aparece". No da contexto sobre:
-- Como se presentan los datos en los P&L reales de McDonald's Espana (formato tabular, columnas de importe y porcentaje)
-- Que los importes pueden estar en miles de euros o con separador de miles como punto
-- Que las lineas de tipo "total" son calculadas y deben ser coherentes
-- Alias y variantes de nombres que aparecen en documentos reales
-- Donde buscar el codigo del local, el mes y el ano
+### Tipografia
 
-### Cambios propuestos
+Se copiaran las dos fuentes subidas al proyecto y se configuraran como `@font-face` en el CSS:
 
-**Archivo:** `supabase/functions/extract-pyl/index.ts`
+- **General Sans Light** (peso 300): para body text, descripciones, labels
+- **General Sans Medium** (peso 500): para titulos, headings, botones, nav items
 
-1. **Reescribir el SYSTEM_PROMPT** con instrucciones detalladas:
-   - Contexto: los documentos son P&L mensuales de franquicias McDonald's en Espana, generados por el sistema corporativo
-   - Formato tipico: tabla con columnas "Concepto | Importe | % sobre Ventas"
-   - Mapeo numerado de las 43 lineas con alias comunes (ej. "RBE" = "Resultado Bruto de Explotacion", "PAC" = "Profit After Controllables", "SOI" = "Store Operating Income")
-   - Instrucciones sobre formatos numericos: los importes en el documento pueden usar punto como separador de miles y coma como decimal (formato espanol), pero deben devolverse como numeros sin formato
-   - Reglas de coherencia: linea 6 = suma lineas 2-5, linea 7 = linea 1 - linea 6, etc.
-   - Donde encontrar metadatos: el codigo local suele aparecer como "Rest." o "Local" seguido de un numero; el periodo como "Mes: MM/AAAA" o "Periodo: ..."
-   - Instruccion de devolver importes negativos con signo menos cuando corresponda
+Se eliminara la importacion de Google Fonts (Inter) y se reemplazara por las fuentes locales.
 
-2. **Mejorar el user prompt** para dar instrucciones de extraccion mas claras junto con la imagen
+### Look & feel estilo Apollo
 
-3. **Agregar descripciones detalladas al tool schema** para cada campo del array `lines`, indicando el indice y nombre de cada linea para guiar mejor al modelo
+Basandome en la captura de Apollo, los cambios principales en la paleta de colores y estilo seran:
 
-### Detalle tecnico del nuevo prompt
+**Colores (modo claro):**
+- Background: blanco puro (#FFFFFF) en lugar del gris claro actual
+- Cards: blanco con bordes sutiles gris claro
+- Sidebar: fondo blanco/muy claro (como Apollo) en lugar del azul oscuro actual
+- Sidebar items activos: fondo gris claro con texto oscuro (en vez de verde sobre azul)
+- Primary: azul oscuro corporativo (similar al actual pero mas neutro)
+- Accent/secondary: un amarillo/dorado sutil como Apollo usa para badges
+- Bordes: gris muy claro y fino
+- Foreground: gris oscuro (#1a1a2e) para texto principal
 
+**Sidebar:**
+- Fondo claro (blanco o gris muy palido) con borde derecho gris claro
+- Texto oscuro en items de navegacion
+- Item activo con fondo gris claro y borde izquierdo o texto en negrita
+- Sin el aspecto "dark sidebar" actual
+
+**Componentes generales:**
+- Cards con sombra minima o sin sombra, solo borde
+- Border radius mas suave
+- Espaciado limpio y profesional
+- Badges con fondo de color suave (como los tags de Apollo)
+
+### Archivos a modificar
+
+1. **`public/fonts/GeneralSans-Light.otf`** y **`public/fonts/GeneralSans-Medium.otf`** - Copiar fuentes al proyecto
+2. **`src/index.css`** - Reemplazar importacion de Inter por `@font-face` de General Sans; actualizar variables CSS de colores para el estilo Apollo (sidebar claro, fondo blanco, bordes sutiles)
+3. **`tailwind.config.ts`** - Agregar la familia `sans` con General Sans como fuente principal
+4. **`src/components/AppHeader.tsx`** - Adaptar header al estilo Apollo (mas limpio, fondo blanco)
+5. **`src/components/AppSidebar.tsx`** - Sidebar con fondo claro, items con estilo Apollo
+6. **`src/components/BottomNav.tsx`** - Adaptar navegacion movil al nuevo estilo claro
+
+### Detalle tecnico
+
+**CSS variables actualizadas (modo claro):**
+```text
+--background:       0 0% 100%       (blanco puro)
+--card:             0 0% 100%       (blanco)
+--border:           220 13% 91%     (gris muy claro)
+--primary:          220 40% 25%     (azul corporativo oscuro)
+--secondary:        38 80% 55%      (dorado/ambar Apollo)
+--muted:            220 14% 96%     (gris palido)
+--sidebar-background: 0 0% 100%    (blanco)
+--sidebar-foreground: 220 20% 30%  (texto oscuro)
+--sidebar-accent:   220 14% 96%    (gris hover)
+--sidebar-border:   220 13% 91%    (borde sutil)
 ```
-SYSTEM_PROMPT:
-- Rol: experto en contabilidad de franquicias McDonald's Espana
-- Contexto del documento: P&L mensual del sistema MCPRO / corporativo
-- Formato numerico: convertir formato espanol (1.234,56) a numero (1234.56)
-- Lista numerada 1-43 con alias para cada concepto
-- Reglas de totales calculados (lineas 6, 7, 22, 23, 33, 36, 37, 40, 42)
-- Guia para localizar metadatos (ano, mes, codigo restaurante)
-- Importes siempre en euros (no miles de euros)
-```
 
-### Archivos modificados
-- `supabase/functions/extract-pyl/index.ts` - Unico archivo a modificar (reescritura del prompt y mejora del schema de la tool)
+**Font-face declarations:**
+```text
+@font-face General Sans Light -> weight 300
+@font-face General Sans Medium -> weight 500
+body: font-weight 300
+h1-h6, strong, .font-bold/semibold/medium: font-weight 500
+```
 
