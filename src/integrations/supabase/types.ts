@@ -22,6 +22,7 @@ export type Database = {
           full_name: string
           id: string
           status: string
+          user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
           company?: string
@@ -30,6 +31,7 @@ export type Database = {
           full_name?: string
           id: string
           status?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
         }
         Update: {
           company?: string
@@ -38,6 +40,7 @@ export type Database = {
           full_name?: string
           id?: string
           status?: string
+          user_type?: Database["public"]["Enums"]["user_type"]
         }
         Relationships: []
       }
@@ -128,6 +131,10 @@ export type Database = {
     }
     Functions: {
       get_user_status: { Args: { _user_id: string }; Returns: string }
+      get_user_type: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["user_type"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -138,6 +145,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      user_type: "nrro" | "franquiciado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -266,6 +274,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      user_type: ["nrro", "franquiciado"],
     },
   },
 } as const
