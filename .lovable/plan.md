@@ -1,49 +1,45 @@
 
 
-# Dashboard - Landing Page
+## Mejora del prompt de IA para McDonald's Espana
 
-## Resumen
-Reemplazar el placeholder actual de `src/pages/Index.tsx` con un dashboard completo que sirva como landing de la app, incluyendo tarjetas de acceso rapido, actividad reciente en sesion, y seccion informativa sobre archivos .pyl.
+### Problema actual
+El prompt actual es generico: solo lista los 43 conceptos por nombre y dice "pon 0 si no aparece". No da contexto sobre:
+- Como se presentan los datos en los P&L reales de McDonald's Espana (formato tabular, columnas de importe y porcentaje)
+- Que los importes pueden estar en miles de euros o con separador de miles como punto
+- Que las lineas de tipo "total" son calculadas y deben ser coherentes
+- Alias y variantes de nombres que aparecen en documentos reales
+- Donde buscar el codigo del local, el mes y el ano
 
----
+### Cambios propuestos
 
-## Cambios en archivos
+**Archivo:** `supabase/functions/extract-pyl/index.ts`
 
-### 1. `src/pages/Index.tsx` - Reescritura completa
+1. **Reescribir el SYSTEM_PROMPT** con instrucciones detalladas:
+   - Contexto: los documentos son P&L mensuales de franquicias McDonald's en Espana, generados por el sistema corporativo
+   - Formato tipico: tabla con columnas "Concepto | Importe | % sobre Ventas"
+   - Mapeo numerado de las 43 lineas con alias comunes (ej. "RBE" = "Resultado Bruto de Explotacion", "PAC" = "Profit After Controllables", "SOI" = "Store Operating Income")
+   - Instrucciones sobre formatos numericos: los importes en el documento pueden usar punto como separador de miles y coma como decimal (formato espanol), pero deben devolverse como numeros sin formato
+   - Reglas de coherencia: linea 6 = suma lineas 2-5, linea 7 = linea 1 - linea 6, etc.
+   - Donde encontrar metadatos: el codigo local suele aparecer como "Rest." o "Local" seguido de un numero; el periodo como "Mes: MM/AAAA" o "Periodo: ..."
+   - Instruccion de devolver importes negativos con signo menos cuando corresponda
 
-**Estructura:**
+2. **Mejorar el user prompt** para dar instrucciones de extraccion mas claras junto con la imagen
 
-1. **Cabecera** con saludo "Bienvenido a PYL Manager" y subtitulo "Herramienta de gestion de P&L para franquicias".
+3. **Agregar descripciones detalladas al tool schema** para cada campo del array `lines`, indicando el indice y nombre de cada linea para guiar mejor al modelo
 
-2. **Grid 2x2 de tarjetas** de acceso rapido usando `Card` + `Link` de react-router-dom:
-   - "Convertir a PYL" con icono `FileUp`, enlace a `/convertir`
-   - "Visor P&L" con icono `Eye`, enlace a `/visor`
-   - "Descargar Plantilla" con icono `Download`, enlace a `/plantilla`
-   - "Ayuda" con icono `HelpCircle`, enlace a `/ayuda` (ruta placeholder)
-   - Cada tarjeta con efecto hover sutil (`hover:shadow-md hover:-translate-y-0.5 transition-all`)
+### Detalle tecnico del nuevo prompt
 
-3. **Seccion "Actividad reciente":**
-   - Estado React en memoria (`useState<ActivityItem[]>([])`) -- no localStorage.
-   - Muestra los ultimos archivos .pyl generados en la sesion (nombre, fecha, local).
-   - Si no hay actividad: mensaje "No hay actividad reciente en esta sesion".
-   - Nota: como el estado es local al componente y no hay un contexto global de actividad implementado, esta seccion mostrara siempre el mensaje vacio. Se prepara la estructura para integracion futura con un contexto o store.
+```
+SYSTEM_PROMPT:
+- Rol: experto en contabilidad de franquicias McDonald's Espana
+- Contexto del documento: P&L mensual del sistema MCPRO / corporativo
+- Formato numerico: convertir formato espanol (1.234,56) a numero (1234.56)
+- Lista numerada 1-43 con alias para cada concepto
+- Reglas de totales calculados (lineas 6, 7, 22, 23, 33, 36, 37, 40, 42)
+- Guia para localizar metadatos (ano, mes, codigo restaurante)
+- Importes siempre en euros (no miles de euros)
+```
 
-4. **Seccion informativa "Que es un archivo .pyl?":**
-   - Explicacion breve en 2 lineas.
-   - Boton/link "Ver mapeo completo" que abre un `Dialog` con una tabla de las 43 lineas PYL (importando `PYL_LINE_MAP` de `src/lib/pyl.ts`).
-
-### 2. `src/App.tsx` - Agregar ruta placeholder `/ayuda`
-
-- Agregar ruta `/ayuda` con un componente placeholder inline similar al Index original (tarjeta con mensaje "Proximamente").
-
----
-
-## Detalles tecnicos
-
-- Iconos de Lucide: `FileUp`, `Eye`, `Download`, `HelpCircle`, `Clock`, `Info`.
-- Componentes UI reutilizados: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `Dialog`, `DialogTrigger`, `DialogContent`, `DialogHeader`, `DialogTitle`.
-- `PYL_LINE_MAP` se importa para popular la tabla del modal.
-- Las tarjetas de navegacion usan `Link` de react-router-dom envuelto en `Card`.
-- Interfaz `ActivityItem`: `{ name: string; date: string; localCode: string }`.
-- No se crean archivos nuevos aparte de la modificacion de los dos existentes.
+### Archivos modificados
+- `supabase/functions/extract-pyl/index.ts` - Unico archivo a modificar (reescritura del prompt y mejora del schema de la tool)
 
