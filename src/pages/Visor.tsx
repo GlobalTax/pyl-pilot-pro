@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { FileSearch, Upload, Download, FileDown, TrendingUp, TrendingDown, DollarSign, BarChart3, Wallet } from "lucide-react";
+import { useUserRestaurants } from "@/hooks/useUserRestaurants";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -29,6 +30,13 @@ const Visor = () => {
   const [data, setData] = useState<PYLData | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
+  const { restaurants } = useUserRestaurants();
+
+  const restaurantName = useMemo(() => {
+    if (!data) return null;
+    const match = restaurants.find((r) => r.code === data.localCode);
+    return match ? match.name : null;
+  }, [data, restaurants]);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".pyl")) {
@@ -121,7 +129,7 @@ const Visor = () => {
               <Card className="overflow-hidden">
                 {/* Header */}
                 <div className="bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))] px-6 py-4">
-                  <h2 className="text-lg font-medium">Site {data.localCode}</h2>
+                  <h2 className="text-lg font-medium">Site {data.localCode}{restaurantName ? ` — ${restaurantName}` : ""}</h2>
                   <p className="text-sm opacity-80">{monthName} {data.year}</p>
                 </div>
 

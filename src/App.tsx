@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Convertir from "./pages/Convertir";
 import Visor from "./pages/Visor";
 import Plantilla from "./pages/Plantilla";
+import Restaurants from "./pages/Restaurants";
 import NotFound from "./pages/NotFound";
 import Ayuda from "./pages/Ayuda";
 import Login from "./pages/Login";
@@ -40,6 +41,7 @@ const App = () => (
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<Index />} />
+                  <Route path="/restaurants" element={<Restaurants />} />
                   <Route path="/convertir" element={<Convertir />} />
                   <Route path="/visor" element={<Visor />} />
                   <Route path="/plantilla" element={<Plantilla />} />
