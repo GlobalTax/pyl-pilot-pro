@@ -1,72 +1,36 @@
 
 
-## Cambio de tipografia y look & feel estilo Apollo
+## Reducir el peso de los títulos
 
-### Tipografia
+### Problema
+Los títulos usan clases `font-bold` (700) y `font-semibold` (600), pero la fuente General Sans solo tiene dos pesos: Light (300) y Medium (500). Como no existen los pesos 600/700 en la fuente, el navegador intenta sintetizarlos artificialmente, lo que produce un aspecto demasiado grueso y poco natural.
 
-Se copiaran las dos fuentes subidas al proyecto y se configuraran como `@font-face` en el CSS:
-
-- **General Sans Light** (peso 300): para body text, descripciones, labels
-- **General Sans Medium** (peso 500): para titulos, headings, botones, nav items
-
-Se eliminara la importacion de Google Fonts (Inter) y se reemplazara por las fuentes locales.
-
-### Look & feel estilo Apollo
-
-Basandome en la captura de Apollo, los cambios principales en la paleta de colores y estilo seran:
-
-**Colores (modo claro):**
-- Background: blanco puro (#FFFFFF) en lugar del gris claro actual
-- Cards: blanco con bordes sutiles gris claro
-- Sidebar: fondo blanco/muy claro (como Apollo) en lugar del azul oscuro actual
-- Sidebar items activos: fondo gris claro con texto oscuro (en vez de verde sobre azul)
-- Primary: azul oscuro corporativo (similar al actual pero mas neutro)
-- Accent/secondary: un amarillo/dorado sutil como Apollo usa para badges
-- Bordes: gris muy claro y fino
-- Foreground: gris oscuro (#1a1a2e) para texto principal
-
-**Sidebar:**
-- Fondo claro (blanco o gris muy palido) con borde derecho gris claro
-- Texto oscuro en items de navegacion
-- Item activo con fondo gris claro y borde izquierdo o texto en negrita
-- Sin el aspecto "dark sidebar" actual
-
-**Componentes generales:**
-- Cards con sombra minima o sin sombra, solo borde
-- Border radius mas suave
-- Espaciado limpio y profesional
-- Badges con fondo de color suave (como los tags de Apollo)
+### Solucion
+Reemplazar todas las ocurrencias de `font-bold` y `font-semibold` por `font-medium` (500) en los componentes de la aplicacion, para que coincidan con el peso real disponible en General Sans Medium.
 
 ### Archivos a modificar
 
-1. **`public/fonts/GeneralSans-Light.otf`** y **`public/fonts/GeneralSans-Medium.otf`** - Copiar fuentes al proyecto
-2. **`src/index.css`** - Reemplazar importacion de Inter por `@font-face` de General Sans; actualizar variables CSS de colores para el estilo Apollo (sidebar claro, fondo blanco, bordes sutiles)
-3. **`tailwind.config.ts`** - Agregar la familia `sans` con General Sans como fuente principal
-4. **`src/components/AppHeader.tsx`** - Adaptar header al estilo Apollo (mas limpio, fondo blanco)
-5. **`src/components/AppSidebar.tsx`** - Sidebar con fondo claro, items con estilo Apollo
-6. **`src/components/BottomNav.tsx`** - Adaptar navegacion movil al nuevo estilo claro
+**Paginas (titulos y textos destacados):**
+- `src/pages/Index.tsx` - h1 "Bienvenido a PYL Manager" y otros titulos
+- `src/pages/Convertir.tsx` - h1, filas de totales en tablas, lineas de validacion
+- `src/pages/Ayuda.tsx` - h1, h2 de secciones
+- `src/pages/Plantilla.tsx` - titulos de pagina
+- `src/pages/Visor.tsx` - titulos de pagina
+- `src/pages/NotFound.tsx` - titulo 404
 
-### Detalle tecnico
+**Componentes UI (valores por defecto):**
+- `src/components/ui/card.tsx` - CardTitle
+- `src/components/ui/dialog.tsx` - DialogTitle
+- `src/components/ui/drawer.tsx` - DrawerTitle
+- `src/components/ui/sheet.tsx` - SheetTitle
+- `src/components/ui/toast.tsx` - ToastTitle
+- `src/components/ui/menubar.tsx` - MenubarLabel
+- `src/components/ui/dropdown-menu.tsx` - DropdownMenuLabel
+- `src/components/ui/context-menu.tsx` - ContextMenuLabel
 
-**CSS variables actualizadas (modo claro):**
-```text
---background:       0 0% 100%       (blanco puro)
---card:             0 0% 100%       (blanco)
---border:           220 13% 91%     (gris muy claro)
---primary:          220 40% 25%     (azul corporativo oscuro)
---secondary:        38 80% 55%      (dorado/ambar Apollo)
---muted:            220 14% 96%     (gris palido)
---sidebar-background: 0 0% 100%    (blanco)
---sidebar-foreground: 220 20% 30%  (texto oscuro)
---sidebar-accent:   220 14% 96%    (gris hover)
---sidebar-border:   220 13% 91%    (borde sutil)
-```
+### Cambio tecnico
+En todos los archivos listados:
+- `font-bold` pasa a `font-medium`
+- `font-semibold` pasa a `font-medium`
 
-**Font-face declarations:**
-```text
-@font-face General Sans Light -> weight 300
-@font-face General Sans Medium -> weight 500
-body: font-weight 300
-h1-h6, strong, .font-bold/semibold/medium: font-weight 500
-```
-
+Esto asegura que todo el texto destacado use el peso 500 (General Sans Medium) que es el unico peso "grueso" disponible en la fuente.
