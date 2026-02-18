@@ -11,7 +11,7 @@ const navItems = [
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-sidebar border-t border-sidebar-border flex justify-around py-2">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-background border-t border-border flex justify-around py-2">
       {navItems.map((item) => (
         <NavLink
           key={item.to}
@@ -19,10 +19,10 @@ export function BottomNav() {
           end={item.to === "/"}
           className={({ isActive }) =>
             cn(
-              "flex flex-col items-center gap-0.5 text-[10px] font-medium px-2 py-1 rounded-md transition-colors",
+              "flex flex-col items-center gap-0.5 text-[10px] px-2 py-1 rounded-md transition-colors",
               isActive
-                ? "text-sidebar-primary"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                ? "text-primary font-medium"
+                : "text-muted-foreground hover:text-foreground font-light"
             )
           }
         >
