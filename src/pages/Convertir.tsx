@@ -14,6 +14,7 @@ import { parseExcelFile, validateTotals, resultToPYLData, type ExcelParseResult,
 import { downloadPYL, PYL_LINE_MAP } from "@/lib/pyl";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivity } from "@/contexts/ActivityContext";
+import { RestaurantSelector } from "@/components/RestaurantSelector";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
@@ -336,10 +337,7 @@ const Convertir = () => {
                         <SelectContent>{MONTHS.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="localCode">Código Local</Label>
-                      <Input id="localCode" value={localCode} onChange={(e) => setLocalCode(e.target.value)} placeholder="289" className={!localCode ? "border-destructive" : ""} />
-                    </div>
+                    <RestaurantSelector value={localCode} onChange={setLocalCode} />
                   </div>
                 </CardContent>
               </Card>
@@ -457,10 +455,7 @@ const Convertir = () => {
                         <SelectContent>{MONTHS.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Código Local</Label>
-                      <Input value={pdfLocalCode} onChange={(e) => setPdfLocalCode(e.target.value)} placeholder="289" className={!pdfLocalCode ? "border-destructive" : ""} />
-                    </div>
+                    <RestaurantSelector value={pdfLocalCode} onChange={setPdfLocalCode} />
                   </div>
                 </CardContent>
               </Card>
@@ -574,10 +569,7 @@ const Convertir = () => {
                     <SelectContent>{MONTHS.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Código Local</Label>
-                  <Input value={manualLocalCode} onChange={(e) => setManualLocalCode(e.target.value)} placeholder="289" className={!manualLocalCode ? "border-destructive" : ""} />
-                </div>
+                <RestaurantSelector value={manualLocalCode} onChange={setManualLocalCode} />
               </div>
             </CardContent>
           </Card>

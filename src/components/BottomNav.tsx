@@ -1,10 +1,11 @@
-import { LayoutDashboard, FileOutput, FileSearch, Download, Shield } from "lucide-react";
+import { LayoutDashboard, FileOutput, FileSearch, Download, Shield, Store } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/restaurants", icon: Store, label: "Locales" },
   { to: "/convertir", icon: FileOutput, label: "Convertir" },
   { to: "/visor", icon: FileSearch, label: "Visor" },
   { to: "/plantilla", icon: Download, label: "Plantilla" },
