@@ -1,48 +1,43 @@
 
 
-## Crear usuarios desde el panel Admin
+## Editar usuarios desde el panel Admin
 
 ### Resumen
-Agregar un boton "Crear usuario" en la pestana Usuarios del panel Admin que permita al administrador registrar nuevos usuarios directamente, sin que estos tengan que pasar por el formulario de registro ni confirmar email.
+Agregar un boton "Editar" en cada fila de la tabla de usuarios que abra un modal para modificar los datos del usuario: nombre, empresa, tipo de usuario (NRRO/franquiciado) y estado.
 
 ### Flujo
-1. Admin hace clic en "Crear usuario" en la pestana Usuarios
-2. Se abre un modal con campos: Nombre, Empresa, Email, Contrasena
-3. Al confirmar, se llama a una funcion backend que crea el usuario con email ya confirmado y estado "approved"
-4. El usuario aparece inmediatamente en la tabla como aprobado y listo para iniciar sesion
+1. Admin hace clic en el icono de editar (lapiz) en la fila del usuario
+2. Se abre un modal con los campos pre-rellenados: Nombre, Empresa, Tipo de usuario, Estado
+3. El admin modifica lo que necesite y pulsa "Guardar"
+4. Se actualiza el perfil directamente en la base de datos y se refresca la tabla
 
 ### Cambios necesarios
 
-**1. Nueva funcion backend `create-user`**
-- Archivo: `supabase/functions/create-user/index.ts`
-- Verifica que quien llama es admin (consultando `user_roles`)
-- Usa el cliente admin (service role) para crear el usuario con `auth.admin.createUser()` con `email_confirm: true`
-- El trigger existente `handle_new_user` creara automaticamente el perfil con estado "pending" y rol "user"
-- Despues de crear, actualiza el perfil a status "approved"
-- Devuelve los datos del usuario creado
+**Modificar `src/pages/Admin.tsx`**
 
-**2. Configuracion en `supabase/config.toml`**
-- Anadir la funcion `create-user` con `verify_jwt = false` (la autorizacion se valida dentro de la funcion)
+1. Nuevo estado para controlar el modal de edicion:
+   - `editTarget`: el perfil que se esta editando (o null)
+   - `editName`, `editCompany`, `editUserType`, `editStatus`: campos editables
+   - `editSaving`: indicador de carga
 
-**3. Modificar `src/pages/Admin.tsx`**
-- Anadir boton "Crear usuario" junto a los filtros en la pestana Usuarios
-- Nuevo Dialog con formulario: nombre, empresa, email, contrasena
-- Al enviar, llamar a la funcion backend via `supabase.functions.invoke("create-user", ...)`
-- Al completar, refrescar la lista de usuarios
+2. Funcion `handleEditUser`:
+   - Actualiza la tabla `profiles` con los nuevos valores de `full_name`, `company`, `user_type` y `status`
+   - Usa `supabase.from("profiles").update(...)` directamente (ya hay politica RLS que permite a admins actualizar cualquier perfil)
+   - Refresca la lista al completar
+
+3. Boton de editar en la columna "Acciones":
+   - Icono de lapiz (Pencil de lucide-react) junto a los botones existentes
+   - Solo visible para usuarios que no sean el admin actual
+
+4. Dialog de edicion con campos:
+   - Nombre (Input)
+   - Empresa (Input)
+   - Tipo de usuario (RadioGroup: Franquiciado / NRRO)
+   - Estado (Select: Pendiente / Aprobado / Rechazado)
 
 ### Detalles tecnicos
 
-**Edge function `create-user`:**
-- Recibe: `{ email, password, full_name, company }`
-- Valida token JWT del llamador y verifica rol admin
-- Llama a `supabaseAdmin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name, company } })`
-- Actualiza `profiles.status = 'approved'` para el nuevo usuario
-- Retorna `{ user_id, email }`
+No se necesita nueva edge function ni migracion de base de datos. La politica RLS existente "Admins can update any profile" ya permite estas actualizaciones.
 
-**Archivos a crear:**
-- `supabase/functions/create-user/index.ts`
-
-**Archivos a modificar:**
-- `supabase/config.toml` -- anadir configuracion de la funcion
-- `src/pages/Admin.tsx` -- anadir boton y modal de creacion de usuario
-
+**Archivo a modificar:**
+- `src/pages/Admin.tsx` -- anadir estado, dialog y boton de edicion
