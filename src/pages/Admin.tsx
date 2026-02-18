@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shield, ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload } from "lucide-react";
+import { Shield, ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil, Upload, KeyRound } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
 import BulkRestaurantUpload from "@/components/BulkRestaurantUpload";
 
@@ -80,6 +80,12 @@ const Admin = () => {
   const [editUserType, setEditUserType] = useState<"nrro" | "franquiciado">("franquiciado");
   const [editStatus, setEditStatus] = useState("pending");
   const [editSaving, setEditSaving] = useState(false);
+
+  // --- Change password state ---
+  const [passwordTarget, setPasswordTarget] = useState<Profile | null>(null);
+  const [pwdNew, setPwdNew] = useState("");
+  const [pwdConfirm, setPwdConfirm] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
 
   const openEditDialog = (p: Profile) => {
     setEditTarget(p);
@@ -295,6 +301,25 @@ const Admin = () => {
 
   const approvedProfiles = useMemo(() => profiles.filter((p) => p.status === "approved"), [profiles]);
 
+  const handleChangePassword = async () => {
+    if (!passwordTarget) return;
+    if (pwdNew.length < 6) { toast.error("La contraseña debe tener al menos 6 caracteres"); return; }
+    if (pwdNew !== pwdConfirm) { toast.error("Las contraseñas no coinciden"); return; }
+    setPwdSaving(true);
+    const { data, error } = await supabase.functions.invoke("update-user-password", {
+      body: { user_id: passwordTarget.id, new_password: pwdNew },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Error al cambiar contraseña");
+    } else {
+      toast.success("Contraseña actualizada");
+      setPasswordTarget(null);
+      setPwdNew("");
+      setPwdConfirm("");
+    }
+    setPwdSaving(false);
+  };
+
   const handleDeleteUser = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -420,6 +445,9 @@ const Admin = () => {
                                   title={adminUserIds.has(p.id) ? "Quitar admin" : "Hacer admin"}
                                 >
                                   {adminUserIds.has(p.id) ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                                </Button>
+                                <Button size="sm" variant="ghost" className="hover:bg-muted" onClick={() => { setPasswordTarget(p); setPwdNew(""); setPwdConfirm(""); }} title="Cambiar contraseña">
+                                  <KeyRound size={14} />
                                 </Button>
                                 <Button size="sm" variant="ghost" className="hover:bg-muted" onClick={() => openEditDialog(p)} title="Editar usuario">
                                   <Pencil size={14} />
@@ -637,6 +665,36 @@ const Admin = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={!!passwordTarget} onOpenChange={(open) => { if (!open) { setPasswordTarget(null); setPwdNew(""); setPwdConfirm(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Cambiar contraseña — {passwordTarget?.full_name || passwordTarget?.email}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nueva contraseña</Label>
+              <Input type="password" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar contraseña</Label>
+              <Input type="password" value={pwdConfirm} onChange={(e) => setPwdConfirm(e.target.value)} placeholder="Repetir contraseña" />
+            </div>
+            {pwdNew.length > 0 && pwdNew.length < 6 && (
+              <p className="text-xs text-destructive">Mínimo 6 caracteres</p>
+            )}
+            {pwdConfirm.length > 0 && pwdNew !== pwdConfirm && (
+              <p className="text-xs text-destructive">Las contraseñas no coinciden</p>
+            )}
+            <Button
+              onClick={handleChangePassword}
+              disabled={pwdSaving || pwdNew.length < 6 || pwdNew !== pwdConfirm}
+              className="w-full gap-2"
+            >
+              {pwdSaving ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />} Cambiar contraseña
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BulkRestaurantUpload open={bulkOpen} onOpenChange={setBulkOpen} onComplete={fetchRestaurants} />
     </div>
