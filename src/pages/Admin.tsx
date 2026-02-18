@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2 } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
@@ -66,6 +67,8 @@ const Admin = () => {
   const [newUserCompany, setNewUserCompany] = useState("");
   const [newUserType, setNewUserType] = useState<"nrro" | "franquiciado">("franquiciado");
   const [creatingUser, setCreatingUser] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -231,6 +234,23 @@ const Admin = () => {
 
   const approvedProfiles = useMemo(() => profiles.filter((p) => p.status === "approved"), [profiles]);
 
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: deleteTarget.id },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Error al eliminar usuario");
+    } else {
+      toast.success("Usuario eliminado");
+      setDeleteTarget(null);
+      fetchProfiles();
+      fetchUserRestaurants();
+    }
+    setDeleting(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -321,6 +341,9 @@ const Admin = () => {
                                     {updating === p.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Rechazar
                                   </Button>
                                 )}
+                                <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(p)} title="Eliminar usuario">
+                                  <Trash2 size={14} />
+                                </Button>
                               </div>
                             )}
                           </TableCell>
@@ -472,6 +495,24 @@ const Admin = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente a <strong>{deleteTarget?.full_name || deleteTarget?.email}</strong> junto con todos sus datos y asignaciones. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2">
+              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
