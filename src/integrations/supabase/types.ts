@@ -44,6 +44,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pyl_files: {
+        Row: {
+          content: string
+          created_at: string
+          filename: string
+          id: string
+          lines_json: Json
+          local_code: string
+          month: string
+          restaurant_id: string | null
+          source: string
+          user_id: string
+          year: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          filename: string
+          id?: string
+          lines_json?: Json
+          local_code: string
+          month: string
+          restaurant_id?: string | null
+          source?: string
+          user_id: string
+          year: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          lines_json?: Json
+          local_code?: string
+          month?: string
+          restaurant_id?: string | null
+          source?: string
+          user_id?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pyl_files_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null

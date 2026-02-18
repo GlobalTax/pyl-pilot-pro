@@ -14,6 +14,7 @@ import Plantilla from "./pages/Plantilla";
 import Restaurants from "./pages/Restaurants";
 import NotFound from "./pages/NotFound";
 import Ayuda from "./pages/Ayuda";
+import History from "./pages/History";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Pending from "./pages/Pending";
@@ -45,6 +46,7 @@ const App = () => (
                   <Route path="/convertir" element={<Convertir />} />
                   <Route path="/visor" element={<Visor />} />
                   <Route path="/plantilla" element={<Plantilla />} />
+                  <Route path="/history" element={<History />} />
                   <Route path="/ayuda" element={<Ayuda />} />
 
                   {/* Admin routes */}
