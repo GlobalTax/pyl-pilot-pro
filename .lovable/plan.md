@@ -1,40 +1,37 @@
 
 
-## Cambiar contrasenas de usuarios desde el panel Admin
+## Acceso diferenciado: NRRO ve todo, franquiciados solo lo asignado
 
-### Resumen
-Anadir un boton en las acciones de cada usuario que permita al super admin establecer una nueva contrasena para ese usuario. Requiere una edge function porque cambiar la contrasena de otro usuario necesita la Admin Auth API (service role key), que no se puede usar desde el cliente.
+### Problema actual
+La base de datos (RLS) ya distingue correctamente entre usuarios NRRO y franquiciados para la tabla `restaurants`. Sin embargo, el codigo frontend (`useUserRestaurants`) siempre consulta solo la tabla `user_restaurants`, por lo que los usuarios NRRO solo ven los restaurantes que tienen explicitamente asignados en lugar de todos.
 
-### Flujo
-1. Admin hace clic en el icono de llave en la fila del usuario
-2. Se abre un dialogo pidiendo la nueva contrasena (con campo de confirmacion)
-3. Al confirmar, se llama a la edge function que valida el rol admin y actualiza la contrasena
-4. Se muestra un toast de exito o error
+### Solucion
 
-### Cambios necesarios
+**1. Modificar `src/hooks/useUserRestaurants.ts`**
 
-**1. Nueva edge function: `supabase/functions/update-user-password/index.ts`**
+- Leer el `user_type` del perfil desde `AuthContext`
+- Si `user_type === "nrro"`: consultar directamente `restaurants` (SELECT *) ya que RLS les permite ver todos
+- Si `user_type === "franquiciado"`: mantener la consulta actual via `user_restaurants`
 
-- Recibe `{ user_id, new_password }` en el body
-- Verifica que el llamante tiene rol admin (mismo patron que `delete-user`)
-- Impide que el admin se cambie la contrasena a si mismo por esta via (debe usar el flujo normal)
-- Valida que la contrasena tenga al menos 6 caracteres
-- Llama a `adminClient.auth.admin.updateUserById(user_id, { password: new_password })`
-- Devuelve exito o error
+**2. Modificar `src/components/RestaurantSelector.tsx`**
 
-**2. Modificar `src/pages/Admin.tsx`**
+- Anadir indicacion visual para usuarios NRRO de que ven todos los restaurantes
+- Eliminar la opcion de "escribir manualmente" para NRRO ya que tienen acceso a la lista completa
 
-- Nuevo estado: `passwordTarget` (perfil seleccionado), `newPassword`, `confirmPassword`, `passwordSaving`
-- Nuevo Dialog con dos campos: "Nueva contrasena" y "Confirmar contrasena"
-- Validacion cliente: ambos campos coinciden, minimo 6 caracteres
-- Nuevo boton con icono `KeyRound` en la columna de acciones (junto a editar y eliminar)
-- Funcion `handleChangePassword` que invoca la edge function
+**3. Modificar `src/pages/Restaurants.tsx`**
 
-**3. Registrar la funcion en `supabase/config.toml`**
+- Para usuarios NRRO: mostrar titulo "Todos los Restaurantes" en vez de "Mis Restaurantes"
+- Ocultar el boton de "desasociar" para NRRO ya que no dependen de asignaciones
+- Permitir a NRRO anadir restaurantes directamente sin crear asignacion en `user_restaurants`
 
-- Anadir entrada para `update-user-password` con `verify_jwt = true`
+### Detalle tecnico
 
-### Seguridad
-- La validacion de rol admin se hace server-side en la edge function
-- Se usa service role key solo en el servidor
-- Validacion de longitud minima de contrasena tanto en cliente como en servidor
+```text
+useUserRestaurants hook:
+  if profile.user_type === "nrro"
+    -> SELECT * FROM restaurants (RLS ya filtra)
+  else
+    -> SELECT via user_restaurants JOIN (logica actual)
+```
+
+No se necesitan cambios en la base de datos ni en las politicas RLS, ya que estas ya implementan la logica correcta. Solo hay que alinear el frontend con lo que la base de datos ya permite.
