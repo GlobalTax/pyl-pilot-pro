@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2 } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Clock, Loader2, Store, Plus, Users, Trash2, Building2, Pencil } from "lucide-react";
 import type { Profile } from "@/contexts/AuthContext";
 
 type Filter = "all" | "pending" | "approved" | "rejected";
@@ -69,6 +69,42 @@ const Admin = () => {
   const [creatingUser, setCreatingUser] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // --- Edit user state ---
+  const [editTarget, setEditTarget] = useState<Profile | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCompany, setEditCompany] = useState("");
+  const [editUserType, setEditUserType] = useState<"nrro" | "franquiciado">("franquiciado");
+  const [editStatus, setEditStatus] = useState("pending");
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEditDialog = (p: Profile) => {
+    setEditTarget(p);
+    setEditName(p.full_name || "");
+    setEditCompany(p.company || "");
+    setEditUserType((p as any).user_type || "franquiciado");
+    setEditStatus(p.status);
+  };
+
+  const handleEditUser = async () => {
+    if (!editTarget) return;
+    setEditSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: editName.trim(),
+      company: editCompany.trim(),
+      user_type: editUserType,
+      status: editStatus,
+    }).eq("id", editTarget.id);
+    if (error) {
+      toast.error("Error al actualizar usuario");
+    } else {
+      toast.success("Usuario actualizado");
+      setEditTarget(null);
+      fetchProfiles();
+      fetchUserRestaurants();
+    }
+    setEditSaving(false);
+  };
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -341,6 +377,9 @@ const Admin = () => {
                                     {updating === p.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Rechazar
                                   </Button>
                                 )}
+                                <Button size="sm" variant="ghost" className="hover:bg-muted" onClick={() => openEditDialog(p)} title="Editar usuario">
+                                  <Pencil size={14} />
+                                </Button>
                                 <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(p)} title="Eliminar usuario">
                                   <Trash2 size={14} />
                                 </Button>
@@ -491,6 +530,44 @@ const Admin = () => {
             </div>
             <Button onClick={handleCreateUser} disabled={creatingUser} className="w-full gap-2">
               {creatingUser ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Crear usuario
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar usuario</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nombre</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Empresa</Label><Input value={editCompany} onChange={(e) => setEditCompany(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Tipo de usuario</Label>
+              <RadioGroup value={editUserType} onValueChange={(v) => setEditUserType(v as "nrro" | "franquiciado")} className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="franquiciado" id="edit-type-franquiciado" />
+                  <Label htmlFor="edit-type-franquiciado" className="font-normal cursor-pointer">Franquiciado</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="nrro" id="edit-type-nrro" />
+                  <Label htmlFor="edit-type-nrro" className="font-normal cursor-pointer">NRRO</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="approved">Aprobado</SelectItem>
+                  <SelectItem value="rejected">Rechazado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleEditUser} disabled={editSaving} className="w-full gap-2">
+              {editSaving ? <Loader2 size={16} className="animate-spin" /> : <Pencil size={16} />} Guardar cambios
             </Button>
           </div>
         </DialogContent>
