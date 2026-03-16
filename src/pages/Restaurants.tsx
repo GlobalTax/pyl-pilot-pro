@@ -168,7 +168,6 @@ const Restaurants = () => {
                      <TableHead>Dirección</TableHead>
                      <TableHead>Ciudad</TableHead>
                      <TableHead className="text-right">Acciones</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
