@@ -124,6 +124,7 @@ const Restaurants = () => {
 
   const openEdit = (r: Restaurant) => {
     setEditTarget(r);
+    setEditCode(r.code);
     setEditName(r.name);
     setEditAddress(r.address ?? "");
     setEditCity(r.city ?? "");
