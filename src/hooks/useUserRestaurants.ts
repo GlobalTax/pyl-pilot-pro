@@ -26,7 +26,7 @@ export function useUserRestaurants() {
         // Admins and NRRO users can see all restaurants
         const { data, error } = await supabase
           .from("restaurants")
-          .select("id, code, name, address, city, created_at")
+          .select("id, code, name, address, city, site, created_at")
           .order("code");
         if (error) throw error;
         return (data ?? []) as Restaurant[];
