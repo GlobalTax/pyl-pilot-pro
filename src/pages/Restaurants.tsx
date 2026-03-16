@@ -27,6 +27,7 @@ const Restaurants = () => {
   const [site, setSite] = useState("");
 
   // Edit form
+  const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
@@ -88,12 +89,12 @@ const Restaurants = () => {
   };
 
   const handleEdit = async () => {
-    if (!editTarget || !editName.trim()) return;
+    if (!editTarget || !editCode.trim() || !editName.trim()) { toast.error("Código y nombre son obligatorios"); return; }
     setSaving(true);
     try {
       const { error } = await supabase
         .from("restaurants")
-        .update({ name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null, site: editSite.trim() || null })
+        .update({ code: editCode.trim(), name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null, site: editSite.trim() || null })
         .eq("id", editTarget.id);
       if (error) throw error;
       toast.success("Restaurante actualizado");
@@ -123,6 +124,7 @@ const Restaurants = () => {
 
   const openEdit = (r: Restaurant) => {
     setEditTarget(r);
+    setEditCode(r.code);
     setEditName(r.name);
     setEditAddress(r.address ?? "");
     setEditCity(r.city ?? "");
@@ -241,6 +243,10 @@ const Restaurants = () => {
             <DialogTitle>Editar restaurante ({editTarget?.code})</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Código *</Label>
+              <Input value={editCode} onChange={(e) => setEditCode(e.target.value)} />
+            </div>
             <div className="space-y-2">
               <Label>Nombre *</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
