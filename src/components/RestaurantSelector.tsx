@@ -26,7 +26,7 @@ export function RestaurantSelector({ value, onChange, className }: RestaurantSel
   }
 
   // NRRO users always see the full select — no manual mode needed
-  if (isNrro) {
+  if (canSeeAll) {
     return (
       <div className="space-y-2">
         <Label>Código Local</Label>
