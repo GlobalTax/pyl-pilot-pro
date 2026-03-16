@@ -134,8 +134,8 @@ const Restaurants = () => {
           <Store className="text-secondary" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-medium text-foreground">{isNrro ? "Todos los Restaurantes" : "Mis Restaurantes"}</h1>
-          <p className="text-sm text-muted-foreground">{isNrro ? "Vista completa de todos los locales" : "Gestiona tus locales asignados"}</p>
+          <h1 className="text-2xl font-medium text-foreground">{canSeeAll ? "Todos los Restaurantes" : "Mis Restaurantes"}</h1>
+          <p className="text-sm text-muted-foreground">{canSeeAll ? "Vista completa de todos los locales" : "Gestiona tus locales asignados"}</p>
         </div>
       </div>
 
