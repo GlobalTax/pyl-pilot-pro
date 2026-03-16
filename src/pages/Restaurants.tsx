@@ -228,8 +228,6 @@ const Restaurants = () => {
                <Label>Site</Label>
                <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://..." />
              </div>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barcelona" />
-            </div>
             <Button onClick={handleAdd} disabled={saving} className="w-full gap-2">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               Añadir
