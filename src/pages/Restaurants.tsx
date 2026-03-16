@@ -24,13 +24,15 @@ const Restaurants = () => {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [site, setSite] = useState("");
 
   // Edit form
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
+  const [editSite, setEditSite] = useState("");
 
-  const resetAdd = () => { setCode(""); setName(""); setAddress(""); setCity(""); };
+  const resetAdd = () => { setCode(""); setName(""); setAddress(""); setCity(""); setSite(""); };
 
   const handleAdd = async () => {
     if (!code.trim() || !name.trim()) { toast.error("Código y nombre son obligatorios"); return; }
