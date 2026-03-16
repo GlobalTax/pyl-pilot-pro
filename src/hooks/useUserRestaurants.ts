@@ -8,6 +8,7 @@ export interface Restaurant {
   name: string;
   address: string | null;
   city: string | null;
+  site: string | null;
   created_at: string;
 }
 
@@ -25,7 +26,7 @@ export function useUserRestaurants() {
         // Admins and NRRO users can see all restaurants
         const { data, error } = await supabase
           .from("restaurants")
-          .select("id, code, name, address, city, created_at")
+          .select("id, code, name, address, city, site, created_at")
           .order("code");
         if (error) throw error;
         return (data ?? []) as Restaurant[];
@@ -34,7 +35,7 @@ export function useUserRestaurants() {
       // Franquiciados only see assigned restaurants
       const { data, error } = await supabase
         .from("user_restaurants")
-        .select("restaurant_id, restaurants(id, code, name, address, city, created_at)")
+        .select("restaurant_id, restaurants(id, code, name, address, city, site, created_at)")
         .eq("user_id", user.id);
 
       if (error) throw error;

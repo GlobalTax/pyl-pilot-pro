@@ -24,13 +24,15 @@ const Restaurants = () => {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [site, setSite] = useState("");
 
   // Edit form
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
+  const [editSite, setEditSite] = useState("");
 
-  const resetAdd = () => { setCode(""); setName(""); setAddress(""); setCity(""); };
+  const resetAdd = () => { setCode(""); setName(""); setAddress(""); setCity(""); setSite(""); };
 
   const handleAdd = async () => {
     if (!code.trim() || !name.trim()) { toast.error("Código y nombre son obligatorios"); return; }
@@ -51,7 +53,7 @@ const Restaurants = () => {
       } else {
         const { data: created, error } = await supabase
           .from("restaurants")
-          .insert({ code: code.trim(), name: name.trim(), address: address.trim() || null, city: city.trim() || null })
+          .insert({ code: code.trim(), name: name.trim(), address: address.trim() || null, city: city.trim() || null, site: site.trim() || null })
           .select("id")
           .single();
         if (error) throw error;
@@ -91,7 +93,7 @@ const Restaurants = () => {
     try {
       const { error } = await supabase
         .from("restaurants")
-        .update({ name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null })
+        .update({ name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null, site: editSite.trim() || null })
         .eq("id", editTarget.id);
       if (error) throw error;
       toast.success("Restaurante actualizado");
@@ -124,6 +126,7 @@ const Restaurants = () => {
     setEditName(r.name);
     setEditAddress(r.address ?? "");
     setEditCity(r.city ?? "");
+    setEditSite(r.site ?? "");
     setEditOpen(true);
   };
 
@@ -159,19 +162,23 @@ const Restaurants = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Dirección</TableHead>
-                    <TableHead>Ciudad</TableHead>
+                     <TableHead>Código</TableHead>
+                     <TableHead>Nombre</TableHead>
+                     <TableHead>Site</TableHead>
+                     <TableHead>Dirección</TableHead>
+                     <TableHead>Ciudad</TableHead>
+                     <TableHead className="text-right">Acciones</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {restaurants.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono font-medium">{r.code}</TableCell>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.address || "—"}</TableCell>
+                       <TableCell className="font-mono font-medium">{r.code}</TableCell>
+                       <TableCell>{r.name}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.site ? <a href={r.site} target="_blank" rel="noopener noreferrer" className="text-primary underline">{r.site}</a> : "—"}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.address || "—"}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -213,10 +220,14 @@ const Restaurants = () => {
               <Label>Dirección</Label>
               <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Diagonal 3" />
             </div>
-            <div className="space-y-2">
-              <Label>Ciudad</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barcelona" />
-            </div>
+             <div className="space-y-2">
+               <Label>Ciudad</Label>
+               <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barcelona" />
+             </div>
+             <div className="space-y-2">
+               <Label>Site</Label>
+               <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://..." />
+             </div>
             <Button onClick={handleAdd} disabled={saving} className="w-full gap-2">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               Añadir
@@ -240,10 +251,14 @@ const Restaurants = () => {
               <Label>Dirección</Label>
               <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Ciudad</Label>
-              <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} />
-            </div>
+             <div className="space-y-2">
+               <Label>Ciudad</Label>
+               <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} />
+             </div>
+             <div className="space-y-2">
+               <Label>Site</Label>
+               <Input value={editSite} onChange={(e) => setEditSite(e.target.value)} placeholder="https://..." />
+             </div>
             <Button onClick={handleEdit} disabled={saving} className="w-full gap-2">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Pencil size={16} />}
               Guardar
