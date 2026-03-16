@@ -35,7 +35,7 @@ export function useUserRestaurants() {
       // Franquiciados only see assigned restaurants
       const { data, error } = await supabase
         .from("user_restaurants")
-        .select("restaurant_id, restaurants(id, code, name, address, city, created_at)")
+        .select("restaurant_id, restaurants(id, code, name, address, city, site, created_at)")
         .eq("user_id", user.id);
 
       if (error) throw error;
