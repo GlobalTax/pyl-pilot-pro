@@ -27,6 +27,7 @@ const Restaurants = () => {
   const [site, setSite] = useState("");
 
   // Edit form
+  const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
