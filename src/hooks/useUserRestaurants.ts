@@ -47,6 +47,8 @@ export function useUserRestaurants() {
     restaurants: query.data ?? [],
     loading: query.isLoading,
     isNrro,
+    isAdmin,
+    canSeeAll,
     refetch: query.refetch,
   };
 }

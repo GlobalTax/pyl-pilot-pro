@@ -13,7 +13,7 @@ import { useUserRestaurants, type Restaurant } from "@/hooks/useUserRestaurants"
 
 const Restaurants = () => {
   const { user } = useAuth();
-  const { restaurants, loading, isNrro, refetch } = useUserRestaurants();
+  const { restaurants, loading, isNrro, canSeeAll, refetch } = useUserRestaurants();
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
