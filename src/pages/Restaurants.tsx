@@ -220,8 +220,14 @@ const Restaurants = () => {
               <Label>Dirección</Label>
               <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Diagonal 3" />
             </div>
-            <div className="space-y-2">
-              <Label>Ciudad</Label>
+             <div className="space-y-2">
+               <Label>Ciudad</Label>
+               <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barcelona" />
+             </div>
+             <div className="space-y-2">
+               <Label>Site</Label>
+               <Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://..." />
+             </div>
               <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barcelona" />
             </div>
             <Button onClick={handleAdd} disabled={saving} className="w-full gap-2">
