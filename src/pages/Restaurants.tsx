@@ -59,7 +59,7 @@ const Restaurants = () => {
       }
 
       // NRRO users don't need assignment in user_restaurants
-      if (!isNrro) {
+      if (!canSeeAll) {
         const { error: assignError } = await supabase
           .from("user_restaurants")
           .insert({ user_id: user.id, restaurant_id: restaurantId });
