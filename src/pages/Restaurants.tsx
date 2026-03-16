@@ -126,6 +126,7 @@ const Restaurants = () => {
     setEditName(r.name);
     setEditAddress(r.address ?? "");
     setEditCity(r.city ?? "");
+    setEditSite(r.site ?? "");
     setEditOpen(true);
   };
 
