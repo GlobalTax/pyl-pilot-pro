@@ -178,7 +178,7 @@ const Restaurants = () => {
                           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
                             <Pencil size={14} />
                           </Button>
-                          {!isNrro && (
+                          {!canSeeAll && (
                             <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemove(r)}>
                               <Trash2 size={14} />
                             </Button>
