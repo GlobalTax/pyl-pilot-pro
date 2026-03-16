@@ -13,7 +13,7 @@ interface RestaurantSelectorProps {
 }
 
 export function RestaurantSelector({ value, onChange, className }: RestaurantSelectorProps) {
-  const { restaurants, loading, isNrro } = useUserRestaurants();
+  const { restaurants, loading, canSeeAll } = useUserRestaurants();
   const [manual, setManual] = useState(false);
 
   if (loading) {
