@@ -8,6 +8,7 @@ export interface Restaurant {
   name: string;
   address: string | null;
   city: string | null;
+  site: string | null;
   created_at: string;
 }
 
