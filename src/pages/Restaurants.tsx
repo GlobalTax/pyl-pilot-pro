@@ -162,10 +162,12 @@ const Restaurants = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Dirección</TableHead>
-                    <TableHead>Ciudad</TableHead>
+                     <TableHead>Código</TableHead>
+                     <TableHead>Nombre</TableHead>
+                     <TableHead>Site</TableHead>
+                     <TableHead>Dirección</TableHead>
+                     <TableHead>Ciudad</TableHead>
+                     <TableHead className="text-right">Acciones</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
