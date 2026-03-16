@@ -168,7 +168,6 @@ const Restaurants = () => {
                      <TableHead>Dirección</TableHead>
                      <TableHead>Ciudad</TableHead>
                      <TableHead className="text-right">Acciones</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -179,7 +178,6 @@ const Restaurants = () => {
                        <TableCell className="text-muted-foreground">{r.site ? <a href={r.site} target="_blank" rel="noopener noreferrer" className="text-primary underline">{r.site}</a> : "—"}</TableCell>
                        <TableCell className="text-muted-foreground">{r.address || "—"}</TableCell>
                        <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
