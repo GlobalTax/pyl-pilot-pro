@@ -244,6 +244,10 @@ const Restaurants = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label>Código *</Label>
+              <Input value={editCode} onChange={(e) => setEditCode(e.target.value)} />
+            </div>
+            <div className="space-y-2">
               <Label>Nombre *</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
