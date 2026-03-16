@@ -53,7 +53,7 @@ const Restaurants = () => {
       } else {
         const { data: created, error } = await supabase
           .from("restaurants")
-          .insert({ code: code.trim(), name: name.trim(), address: address.trim() || null, city: city.trim() || null })
+          .insert({ code: code.trim(), name: name.trim(), address: address.trim() || null, city: city.trim() || null, site: site.trim() || null })
           .select("id")
           .single();
         if (error) throw error;
