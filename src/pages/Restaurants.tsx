@@ -89,12 +89,12 @@ const Restaurants = () => {
   };
 
   const handleEdit = async () => {
-    if (!editTarget || !editName.trim()) return;
+    if (!editTarget || !editCode.trim() || !editName.trim()) { toast.error("Código y nombre son obligatorios"); return; }
     setSaving(true);
     try {
       const { error } = await supabase
         .from("restaurants")
-        .update({ name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null, site: editSite.trim() || null })
+        .update({ code: editCode.trim(), name: editName.trim(), address: editAddress.trim() || null, city: editCity.trim() || null, site: editSite.trim() || null })
         .eq("id", editTarget.id);
       if (error) throw error;
       toast.success("Restaurante actualizado");
