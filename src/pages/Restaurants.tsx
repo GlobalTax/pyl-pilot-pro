@@ -174,9 +174,11 @@ const Restaurants = () => {
                 <TableBody>
                   {restaurants.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="font-mono font-medium">{r.code}</TableCell>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{r.address || "—"}</TableCell>
+                       <TableCell className="font-mono font-medium">{r.code}</TableCell>
+                       <TableCell>{r.name}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.site ? <a href={r.site} target="_blank" rel="noopener noreferrer" className="text-primary underline">{r.site}</a> : "—"}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.address || "—"}</TableCell>
+                       <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{r.city || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
