@@ -253,10 +253,14 @@ const Restaurants = () => {
               <Label>Dirección</Label>
               <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Ciudad</Label>
-              <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} />
-            </div>
+             <div className="space-y-2">
+               <Label>Ciudad</Label>
+               <Input value={editCity} onChange={(e) => setEditCity(e.target.value)} />
+             </div>
+             <div className="space-y-2">
+               <Label>Site</Label>
+               <Input value={editSite} onChange={(e) => setEditSite(e.target.value)} placeholder="https://..." />
+             </div>
             <Button onClick={handleEdit} disabled={saving} className="w-full gap-2">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Pencil size={16} />}
               Guardar
