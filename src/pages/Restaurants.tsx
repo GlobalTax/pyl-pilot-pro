@@ -145,7 +145,7 @@ const Restaurants = () => {
 
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">{isNrro ? "Restaurantes" : "Restaurantes asignados"} ({restaurants.length})</CardTitle>
+          <CardTitle className="text-lg">{canSeeAll ? "Restaurantes" : "Restaurantes asignados"} ({restaurants.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
