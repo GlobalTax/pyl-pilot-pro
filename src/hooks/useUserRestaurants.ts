@@ -12,16 +12,17 @@ export interface Restaurant {
 }
 
 export function useUserRestaurants() {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const isNrro = profile?.user_type === "nrro";
+  const canSeeAll = isNrro || isAdmin;
 
   const query = useQuery({
-    queryKey: ["user-restaurants", user?.id, profile?.user_type],
+    queryKey: ["user-restaurants", user?.id, profile?.user_type, isAdmin],
     queryFn: async () => {
       if (!user) return [];
 
-      if (isNrro) {
-        // NRRO users can see all restaurants (RLS allows it)
+      if (canSeeAll) {
+        // Admins and NRRO users can see all restaurants
         const { data, error } = await supabase
           .from("restaurants")
           .select("id, code, name, address, city, created_at")
