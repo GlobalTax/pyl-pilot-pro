@@ -13,7 +13,7 @@ interface RestaurantSelectorProps {
 }
 
 export function RestaurantSelector({ value, onChange, className }: RestaurantSelectorProps) {
-  const { restaurants, loading, isNrro } = useUserRestaurants();
+  const { restaurants, loading, canSeeAll } = useUserRestaurants();
   const [manual, setManual] = useState(false);
 
   if (loading) {
@@ -26,7 +26,7 @@ export function RestaurantSelector({ value, onChange, className }: RestaurantSel
   }
 
   // NRRO users always see the full select — no manual mode needed
-  if (isNrro) {
+  if (canSeeAll) {
     return (
       <div className="space-y-2">
         <Label>Código Local</Label>

@@ -13,7 +13,7 @@ import { useUserRestaurants, type Restaurant } from "@/hooks/useUserRestaurants"
 
 const Restaurants = () => {
   const { user } = useAuth();
-  const { restaurants, loading, isNrro, refetch } = useUserRestaurants();
+  const { restaurants, loading, isNrro, canSeeAll, refetch } = useUserRestaurants();
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,7 +59,7 @@ const Restaurants = () => {
       }
 
       // NRRO users don't need assignment in user_restaurants
-      if (!isNrro) {
+      if (!canSeeAll) {
         const { error: assignError } = await supabase
           .from("user_restaurants")
           .insert({ user_id: user.id, restaurant_id: restaurantId });
@@ -134,8 +134,8 @@ const Restaurants = () => {
           <Store className="text-secondary" size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-medium text-foreground">{isNrro ? "Todos los Restaurantes" : "Mis Restaurantes"}</h1>
-          <p className="text-sm text-muted-foreground">{isNrro ? "Vista completa de todos los locales" : "Gestiona tus locales asignados"}</p>
+          <h1 className="text-2xl font-medium text-foreground">{canSeeAll ? "Todos los Restaurantes" : "Mis Restaurantes"}</h1>
+          <p className="text-sm text-muted-foreground">{canSeeAll ? "Vista completa de todos los locales" : "Gestiona tus locales asignados"}</p>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ const Restaurants = () => {
 
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">{isNrro ? "Restaurantes" : "Restaurantes asignados"} ({restaurants.length})</CardTitle>
+          <CardTitle className="text-lg">{canSeeAll ? "Restaurantes" : "Restaurantes asignados"} ({restaurants.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -178,7 +178,7 @@ const Restaurants = () => {
                           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
                             <Pencil size={14} />
                           </Button>
-                          {!isNrro && (
+                          {!canSeeAll && (
                             <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleRemove(r)}>
                               <Trash2 size={14} />
                             </Button>
