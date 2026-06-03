@@ -20,6 +20,8 @@ import Register from "./pages/Register";
 import Pending from "./pages/Pending";
 import Rejected from "./pages/Rejected";
 import Admin from "./pages/Admin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
