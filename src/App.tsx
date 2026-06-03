@@ -20,6 +20,8 @@ import Register from "./pages/Register";
 import Pending from "./pages/Pending";
 import Rejected from "./pages/Rejected";
 import Admin from "./pages/Admin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +39,8 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/pending" element={<Pending />} />
               <Route path="/rejected" element={<Rejected />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
