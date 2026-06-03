@@ -39,6 +39,8 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/pending" element={<Pending />} />
               <Route path="/rejected" element={<Rejected />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes */}
               <Route element={<ProtectedRoute />}>
